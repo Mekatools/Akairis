@@ -1,167 +1,173 @@
 (function () {
   'use strict';
 
-  var STORAGE_INTRO = 'akairis_intro_seen';
-  var STORAGE_BOOKMARKS = 'akairis_bookmarks';
-  var STORAGE_HISTORY = 'akairis_history';
-  var STORAGE_POSITIONS = 'akairis_positions';
-  var STORAGE_WATCHED = 'akairis_watched';
+  var ANILIST_URL = 'https://graphql.anilist.co';
+  var STORAGE_TRACKER = 'akairis_wiki_tracker';
+
+  var STATUS_LABELS = {
+    watching: 'Watching',
+    completed: 'Completed',
+    plan: 'Plan to Watch',
+    hold: 'On Hold',
+    dropped: 'Dropped'
+  };
+
+  var MEDIA_CARD_FIELDS =
+    'id isAdult format status episodes seasonYear averageScore ' +
+    'title { romaji english native } ' +
+    'coverImage { extraLarge large } ' +
+    'bannerImage description(asHtml: false) genres';
 
   var state = {
     config: null,
-    catalog: null,
-    allowlistSet: new Set(),
-    activeTab: 'all',
-    search: '',
+    activeTab: 'home',
+    searchType: 'both',
+    searchQuery: '',
     genre: 'all',
-    language: 'all',
-    tag: 'all',
-    sort: 'newest',
+    format: 'all',
+    status: 'all',
+    year: 'all',
+    sort: 'POPULARITY_DESC',
     showMature: false,
-    bookmarks: [],
-    history: [],
-    positions: {},
-    watched: {},
-    theater: null,
-    detail: null,
-    ytApiPromise: null,
-    ytPlayerInstance: null,
-    progressTimer: null,
-    isSeeking: false,
-    lastSavedSec: 0,
-    autoplayTimer: null,
-    autoplaySeconds: 5
+    page: 1,
+    hasNextPage: false,
+    homeLoaded: false,
+    homeData: null,
+    airingLoaded: false,
+    airingList: [],
+    myListFilter: 'all',
+    tracker: {},
+    currentAnime: null,
+    currentCharacter: null,
+    cache: {
+      anime: {},
+      character: {}
+    }
   };
 
   var els = {
     introOverlay: document.getElementById('intro-overlay'),
+    introLoadingText: document.getElementById('intro-loading-text'),
     skipIntroBtn: document.getElementById('skip-intro-btn'),
     replayIntroBtn: document.getElementById('replay-intro-btn'),
+
+    eyeLoader: document.getElementById('eye-loader'),
+    eyeLoaderText: document.getElementById('eye-loader-text'),
+
     siteName: document.getElementById('site-name'),
     siteTagline: document.getElementById('site-tagline'),
     footerSiteName: document.getElementById('footer-site-name'),
     brandHomeLink: document.getElementById('brand-home-link'),
     footerCreditsBtn: document.getElementById('footer-credits-btn'),
-    navBtns: document.querySelectorAll('.nav-btn'),
+    navBtns: document.querySelectorAll('.nav-btn[data-tab]'),
 
     appError: document.getElementById('app-error'),
     appErrorMsg: document.getElementById('app-error-msg'),
     retryLoadBtn: document.getElementById('retry-load-btn'),
-    loadingState: document.getElementById('loading-state'),
 
-    theaterSection: document.getElementById('theater-section'),
-    theaterBackBtn: document.getElementById('theater-back-btn'),
-    theaterTypeBadge: document.getElementById('theater-type-badge'),
-    theaterWatchedBadge: document.getElementById('theater-watched-badge'),
-    theaterTitle: document.getElementById('theater-title'),
-    theaterSubtitle: document.getElementById('theater-subtitle'),
-    theaterDetailBtn: document.getElementById('theater-detail-btn'),
-    theaterBookmarkBtn: document.getElementById('theater-bookmark-btn'),
-    theaterPlayerShell: document.getElementById('theater-player-shell'),
-    playerStage: document.getElementById('player-stage'),
-
-    customControls: document.getElementById('custom-controls'),
-    ccPlayBtn: document.getElementById('cc-play-btn'),
-    ccSeek: document.getElementById('cc-seek'),
-    ccTime: document.getElementById('cc-time'),
-    ccMuteBtn: document.getElementById('cc-mute-btn'),
-    ccVolume: document.getElementById('cc-volume'),
-    ccSpeed: document.getElementById('cc-speed'),
-    ccFullscreenBtn: document.getElementById('cc-fullscreen-btn'),
-
-    autoplayBanner: document.getElementById('autoplay-banner'),
-    autoplayBannerText: document.getElementById('autoplay-banner-text'),
-    autoplayNowBtn: document.getElementById('autoplay-now-btn'),
-    autoplayCancelBtn: document.getElementById('autoplay-cancel-btn'),
-
-    episodeNavControls: document.getElementById('episode-nav-controls'),
-    prevEpBtn: document.getElementById('prev-ep-btn'),
-    nextEpBtn: document.getElementById('next-ep-btn'),
-    markWatchedBtn: document.getElementById('mark-watched-btn'),
-    autoplayToggle: document.getElementById('autoplay-toggle'),
-    trackToggleGroup: document.getElementById('track-toggle-group'),
-    trackSubBtn: document.getElementById('track-sub-btn'),
-    trackHiBtn: document.getElementById('track-hi-btn'),
-    trackNotice: document.getElementById('track-notice'),
-    theaterSynopsis: document.getElementById('theater-synopsis'),
-    episodePanel: document.getElementById('episode-panel'),
-    seasonSelect: document.getElementById('season-select'),
-    episodeList: document.getElementById('episode-list'),
-    theaterRelatedSection: document.getElementById('theater-related-section'),
-    theaterRelatedGrid: document.getElementById('theater-related-grid'),
-
-    detailView: document.getElementById('detail-view'),
-    detailBackBtn: document.getElementById('detail-back-btn'),
-    detailThumb: document.getElementById('detail-thumb'),
-    detailTypeBadge: document.getElementById('detail-type-badge'),
-    detailYearBadge: document.getElementById('detail-year-badge'),
-    detailLangBadge: document.getElementById('detail-lang-badge'),
-    detailTitle: document.getElementById('detail-title'),
-    detailSynopsis: document.getElementById('detail-synopsis'),
-    detailGenres: document.getElementById('detail-genres'),
-    detailWatchBtn: document.getElementById('detail-watch-btn'),
-    detailBookmarkBtn: document.getElementById('detail-bookmark-btn'),
-    detailShareBtn: document.getElementById('detail-share-btn'),
-    detailShareStatus: document.getElementById('detail-share-status'),
-    detailEpisodesWrap: document.getElementById('detail-episodes-wrap'),
-    detailTrackToggle: document.getElementById('detail-track-toggle'),
-    detailTrackSub: document.getElementById('detail-track-sub'),
-    detailTrackHi: document.getElementById('detail-track-hi'),
-    detailSeasonSelect: document.getElementById('detail-season-select'),
-    detailEpisodeList: document.getElementById('detail-episode-list'),
-    detailRelatedSection: document.getElementById('detail-related-section'),
-    detailRelatedGrid: document.getElementById('detail-related-grid'),
-
-    browseView: document.getElementById('browse-view'),
+    homeView: document.getElementById('home-view'),
+    wikiView: document.getElementById('wiki-view'),
+    characterView: document.getElementById('character-view'),
+    airingView: document.getElementById('airing-view'),
+    mylistView: document.getElementById('mylist-view'),
     creditsView: document.getElementById('credits-view'),
 
+    /* Anime Wiki View */
+    wikiBackBtn: document.getElementById('wiki-back-btn'),
+    wikiShareBtn: document.getElementById('wiki-share-btn'),
+    wikiShareStatus: document.getElementById('wiki-share-status'),
+    wikiBannerImg: document.getElementById('wiki-banner-img'),
+    wikiCover: document.getElementById('wiki-cover'),
+    wikiInfobox: document.getElementById('wiki-infobox'),
+    wikiFormatBadge: document.getElementById('wiki-format-badge'),
+    wikiStatusBadge: document.getElementById('wiki-status-badge'),
+    wikiScoreBadge: document.getElementById('wiki-score-badge'),
+    wikiTitle: document.getElementById('wiki-title'),
+    wikiNativeTitle: document.getElementById('wiki-native-title'),
+    wikiAiringCountdown: document.getElementById('wiki-airing-countdown'),
+    wikiGenres: document.getElementById('wiki-genres'),
+    trackerStatus: document.getElementById('tracker-status'),
+    trackerEpMinus: document.getElementById('tracker-ep-minus'),
+    trackerEpCount: document.getElementById('tracker-ep-count'),
+    trackerEpPlus: document.getElementById('tracker-ep-plus'),
+    trackerScore: document.getElementById('tracker-score'),
+    trackerNotes: document.getElementById('tracker-notes'),
+    trackerSaveStatus: document.getElementById('tracker-save-status'),
+    wikiSynopsis: document.getElementById('wiki-synopsis'),
+    wikiTags: document.getElementById('wiki-tags'),
+    wikiCharactersSection: document.getElementById('wiki-characters-section'),
+    wikiCharactersGrid: document.getElementById('wiki-characters-grid'),
+    wikiRelationsSection: document.getElementById('wiki-relations-section'),
+    wikiRelationsGrid: document.getElementById('wiki-relations-grid'),
+    wikiRecsSection: document.getElementById('wiki-recs-section'),
+    wikiRecsGrid: document.getElementById('wiki-recs-grid'),
+
+    /* Character Wiki View */
+    charBackBtn: document.getElementById('char-back-btn'),
+    charShareBtn: document.getElementById('char-share-btn'),
+    charShareStatus: document.getElementById('char-share-status'),
+    charCover: document.getElementById('char-cover'),
+    charInfobox: document.getElementById('char-infobox'),
+    charFavBadge: document.getElementById('char-fav-badge'),
+    charTitle: document.getElementById('char-title'),
+    charNativeTitle: document.getElementById('char-native-title'),
+    charAltNames: document.getElementById('char-alt-names'),
+    charBio: document.getElementById('char-bio'),
+    charVaSection: document.getElementById('char-va-section'),
+    charVaGrid: document.getElementById('char-va-grid'),
+    charMediaSection: document.getElementById('char-media-section'),
+    charMediaGrid: document.getElementById('char-media-grid'),
+
+    /* Home & Search */
     heroBanner: document.getElementById('hero-banner'),
     heroBgImg: document.getElementById('hero-bg-img'),
     heroTitle: document.getElementById('hero-title'),
     heroMeta: document.getElementById('hero-meta'),
     heroSynopsis: document.getElementById('hero-synopsis'),
-    heroWatchBtn: document.getElementById('hero-watch-btn'),
-    heroDetailBtn: document.getElementById('hero-detail-btn'),
+    heroReadBtn: document.getElementById('hero-read-btn'),
 
-    continueSection: document.getElementById('continue-section'),
-    continueGrid: document.getElementById('continue-grid'),
-    clearHistoryBtn: document.getElementById('clear-history-btn'),
-
+    searchForm: document.getElementById('search-form'),
+    searchType: document.getElementById('search-type'),
     searchInput: document.getElementById('search-input'),
-    randomPickBtn: document.getElementById('random-pick-btn'),
+    randomAnimeBtn: document.getElementById('random-anime-btn'),
     genreFilter: document.getElementById('genre-filter'),
-    languageFilter: document.getElementById('language-filter'),
-    tagFilter: document.getElementById('tag-filter'),
+    formatFilter: document.getElementById('format-filter'),
+    statusFilter: document.getElementById('status-filter'),
+    yearFilter: document.getElementById('year-filter'),
     sortFilter: document.getElementById('sort-filter'),
     matureToggle: document.getElementById('mature-toggle'),
 
+    charResultsSection: document.getElementById('char-results-section'),
+    charResultsCount: document.getElementById('char-results-count'),
+    charResultsGrid: document.getElementById('char-results-grid'),
+    resultsSection: document.getElementById('results-section'),
+    resultsTitle: document.getElementById('results-title'),
+    resultsCount: document.getElementById('results-count'),
+    resultsGrid: document.getElementById('results-grid'),
+    loadMoreBtn: document.getElementById('load-more-btn'),
     emptyState: document.getElementById('empty-state'),
-    emptyTitle: document.getElementById('empty-title'),
-    emptyDesc: document.getElementById('empty-desc'),
     resetFiltersBtn: document.getElementById('reset-filters-btn'),
 
-    trendingSection: document.getElementById('trending-section'),
+    homeRows: document.getElementById('home-rows'),
     trendingGrid: document.getElementById('trending-grid'),
-    recentSection: document.getElementById('recent-section'),
-    recentGrid: document.getElementById('recent-grid'),
-
-    moviesSection: document.getElementById('movies-section'),
-    moviesCount: document.getElementById('movies-count'),
+    seasonGrid: document.getElementById('season-grid'),
+    topGrid: document.getElementById('top-grid'),
     moviesGrid: document.getElementById('movies-grid'),
 
-    showsSection: document.getElementById('shows-section'),
-    showsCount: document.getElementById('shows-count'),
-    showsGrid: document.getElementById('shows-grid'),
-
-    bookmarksSection: document.getElementById('bookmarks-section'),
-    bookmarksCount: document.getElementById('bookmarks-count'),
-    bookmarksGrid: document.getElementById('bookmarks-grid'),
+    airingGrid: document.getElementById('airing-grid'),
+    mylistClearBtn: document.getElementById('mylist-clear-btn'),
+    mylistFilterBtns: document.querySelectorAll('[data-list-filter]'),
+    mylistEmpty: document.getElementById('mylist-empty'),
+    mylistGrid: document.getElementById('mylist-grid'),
 
     aboutStatement: document.getElementById('about-statement'),
-    allowlistList: document.getElementById('allowlist-list'),
+    sourcesList: document.getElementById('sources-list'),
     takedownEmailLink: document.getElementById('takedown-email-link')
   };
 
+  /* -------------------------------------------------------
+     Storage & Intro / Eye Loader Helpers
+     ------------------------------------------------------- */
   function readStorage(key, fallback) {
     try {
       var raw = localStorage.getItem(key);
@@ -177,44 +183,66 @@
     } catch (e) {}
   }
 
-  function setIntroSeen() {
-    try {
-      localStorage.setItem(STORAGE_INTRO, '1');
-    } catch (e) {}
-  }
+  var introFailsafe = null;
+  var introStartedAt = Date.now();
 
-  var introTimer = null;
+  function setIntroMessage(msg) {
+    if (els.introLoadingText) {
+      els.introLoadingText.textContent = msg;
+    }
+  }
 
   function dismissIntro() {
-    if (introTimer) {
-      clearTimeout(introTimer);
-      introTimer = null;
+    if (introFailsafe) {
+      clearTimeout(introFailsafe);
+      introFailsafe = null;
     }
-    setIntroSeen();
-    if (els.introOverlay) {
-      els.introOverlay.classList.add('is-done');
-    }
+    if (!els.introOverlay || els.introOverlay.classList.contains('is-done')) return;
+    els.introOverlay.classList.add('is-leaving');
+    setTimeout(function () {
+      if (els.introOverlay) els.introOverlay.classList.add('is-done');
+    }, 450);
   }
 
-  function setupIntro() {
+  function finishIntroSmoothly() {
+    var elapsed = Date.now() - introStartedAt;
+    var wait = Math.max(0, 1200 - elapsed);
+    setTimeout(dismissIntro, wait);
+  }
+
+  function startIntro() {
+    introStartedAt = Date.now();
     if (document.documentElement.classList.contains('skip-intro')) {
-      dismissIntro();
+      if (els.introOverlay) els.introOverlay.classList.add('is-done');
       return;
     }
-    introTimer = setTimeout(dismissIntro, 2700);
+    if (introFailsafe) clearTimeout(introFailsafe);
+    introFailsafe = setTimeout(dismissIntro, 2850);
   }
 
   function replayIntro() {
     if (!els.introOverlay) return;
     document.documentElement.classList.remove('skip-intro');
-    els.introOverlay.classList.remove('is-done');
-    els.introOverlay.style.display = 'none';
-    void els.introOverlay.offsetWidth;
-    els.introOverlay.style.display = '';
-    if (introTimer) clearTimeout(introTimer);
-    introTimer = setTimeout(dismissIntro, 2700);
+    els.introOverlay.classList.remove('is-done', 'is-leaving');
+    setIntroMessage('Awakening Akairis Encyclopedia...');
+    introStartedAt = Date.now();
+    if (introFailsafe) clearTimeout(introFailsafe);
+    introFailsafe = setTimeout(dismissIntro, 2400);
   }
 
+  function showEyeLoader(message) {
+    els.appError.classList.add('hidden');
+    els.eyeLoaderText.textContent = message || 'Loading from Akairis Encyclopedia...';
+    els.eyeLoader.classList.remove('hidden');
+  }
+
+  function hideEyeLoader() {
+    els.eyeLoader.classList.add('hidden');
+  }
+
+  /* -------------------------------------------------------
+     Formatting & Safe Text Helpers
+     ------------------------------------------------------- */
   function escapeHtml(str) {
     return String(str || '')
       .replace(/&/g, '&amp;')
@@ -224,1313 +252,906 @@
       .replace(/'/g, '&#39;');
   }
 
-  function formatTime(sec) {
-    var total = Math.max(0, Math.floor(sec || 0));
-    var h = Math.floor(total / 3600);
-    var m = Math.floor((total % 3600) / 60);
-    var s = total % 60;
-    var mm = h > 0 && m < 10 ? '0' + m : String(m);
-    var ss = s < 10 ? '0' + s : String(s);
-    return h > 0 ? h + ':' + mm + ':' + ss : mm + ':' + ss;
+  function getTitle(media) {
+    if (!media || !media.title) return 'Untitled';
+    return media.title.english || media.title.romaji || media.title.native || 'Untitled';
   }
 
-  function thumbUrl(videoId, quality) {
-    return 'https://i.ytimg.com/vi/' + encodeURIComponent(videoId) + '/' + (quality || 'maxresdefault') + '.jpg';
-  }
-
-  function attachThumbFallback(imgEl, videoId) {
-    if (!imgEl || !videoId) return;
-    imgEl.onerror = function () {
-      if (!imgEl.dataset.fallbackTried) {
-        imgEl.dataset.fallbackTried = '1';
-        imgEl.src = thumbUrl(videoId, 'hqdefault');
-      }
+  function formatStatus(st) {
+    var map = {
+      RELEASING: 'Airing',
+      FINISHED: 'Finished',
+      NOT_YET_RELEASED: 'Upcoming',
+      CANCELLED: 'Cancelled',
+      HIATUS: 'Hiatus'
     };
-    imgEl.onload = function () {
-      if (!imgEl.dataset.fallbackTried && imgEl.naturalWidth === 120) {
-        imgEl.dataset.fallbackTried = '1';
-        imgEl.src = thumbUrl(videoId, 'hqdefault');
+    return map[st] || st || 'Unknown';
+  }
+
+  function formatCountdown(seconds) {
+    var s = Math.max(0, Number(seconds) || 0);
+    var d = Math.floor(s / 86400);
+    var h = Math.floor((s % 86400) / 3600);
+    var m = Math.floor((s % 3600) / 60);
+    if (d > 0) return d + 'd ' + h + 'h';
+    if (h > 0) return h + 'h ' + m + 'm';
+    return m + 'm';
+  }
+
+  function cleanPlainSynopsis(raw) {
+    return String(raw || 'No synopsis available.')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/~!([\s\S]*?)!~/g, '[Spoiler]');
+  }
+
+  function renderWikiRichText(containerEl, rawText, fallbackMsg) {
+    containerEl.innerHTML = '';
+    var cleaned = String(rawText || fallbackMsg || 'No information available.')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/__([^_]+)__/g, '$1')
+      .replace(/\*\*([^*]+)\*\*/g, '$1');
+
+    var parts = cleaned.split(/(~!|!~)/);
+    var inSpoiler = false;
+
+    for (var i = 0; i < parts.length; i++) {
+      var chunk = parts[i];
+      if (chunk === '~!') {
+        inSpoiler = true;
+        continue;
       }
-    };
+      if (chunk === '!~') {
+        inSpoiler = false;
+        continue;
+      }
+      if (!chunk) continue;
+
+      if (inSpoiler) {
+        (function (spoilerText) {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'spoiler-btn';
+          btn.textContent = 'Reveal Spoiler';
+          btn.addEventListener('click', function () {
+            var span = document.createElement('span');
+            span.className = 'spoiler-revealed';
+            span.textContent = spoilerText;
+            btn.replaceWith(span);
+          });
+          containerEl.appendChild(btn);
+        })(chunk.trim());
+      } else {
+        containerEl.appendChild(document.createTextNode(chunk));
+      }
+    }
   }
 
-  function isChannelAllowed(channelId) {
-    return Boolean(channelId && state.allowlistSet.has(channelId));
-  }
-
-  function isBookmarked(type, id) {
-    return state.bookmarks.some(function (b) {
-      return b.type === type && b.id === id;
+  /* -------------------------------------------------------
+     AniList GraphQL API Helper
+     ------------------------------------------------------- */
+  async function queryAniList(query, variables) {
+    var cleanVars = {};
+    Object.keys(variables || {}).forEach(function (k) {
+      if (variables[k] !== undefined && variables[k] !== null && variables[k] !== '') {
+        cleanVars[k] = variables[k];
+      }
     });
-  }
 
-  function toggleBookmark(type, id) {
-    if (isBookmarked(type, id)) {
-      state.bookmarks = state.bookmarks.filter(function (b) {
-        return !(b.type === type && b.id === id);
-      });
-    } else {
-      state.bookmarks.unshift({ type: type, id: id });
-    }
-    writeStorage(STORAGE_BOOKMARKS, state.bookmarks);
-    updateTheaterBookmarkBtn();
-    updateDetailBookmarkBtn();
-    renderBrowse();
-  }
-
-  function epWatchedKey(showId, seasonNum, epNum) {
-    return showId + '|s' + seasonNum + '|e' + epNum;
-  }
-
-  function isEpisodeWatched(showId, seasonNum, epNum) {
-    return Boolean(state.watched[epWatchedKey(showId, seasonNum, epNum)]);
-  }
-
-  function setEpisodeWatched(showId, seasonNum, epNum, value) {
-    var key = epWatchedKey(showId, seasonNum, epNum);
-    if (value) {
-      state.watched[key] = true;
-    } else {
-      delete state.watched[key];
-    }
-    writeStorage(STORAGE_WATCHED, state.watched);
-  }
-
-  function saveVideoPosition(videoId, seconds) {
-    if (!videoId) return;
-    if (seconds > 8) {
-      state.positions[videoId] = Math.floor(seconds);
-    } else {
-      delete state.positions[videoId];
-    }
-    writeStorage(STORAGE_POSITIONS, state.positions);
-  }
-
-  function clearVideoPosition(videoId) {
-    if (!videoId || !state.positions[videoId]) return;
-    delete state.positions[videoId];
-    writeStorage(STORAGE_POSITIONS, state.positions);
-  }
-
-  function recordHistory(entry) {
-    state.history = state.history.filter(function (item) {
-      return !(item.type === entry.type && item.id === entry.id);
+    var res = await fetch(ANILIST_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ query: query, variables: cleanVars })
     });
-    state.history.unshift(entry);
-    if (state.history.length > 12) {
-      state.history = state.history.slice(0, 12);
-    }
-    writeStorage(STORAGE_HISTORY, state.history);
-    renderContinueWatching();
-  }
 
-  async function loadJsonFile(url) {
-    var response = await fetch(url, { cache: 'no-store' });
-    if (!response.ok) {
-      throw new Error('Could not load ' + url + ' (status ' + response.status + ')');
-    }
+    var json;
     try {
-      return await response.json();
-    } catch (parseErr) {
-      throw new Error(url + ' has a JSON formatting mistake. Check commas and quotes.');
+      json = await res.json();
+    } catch (e) {
+      throw new Error('Received an invalid response from the anime encyclopedia.');
     }
+
+    if (!res.ok || (json.errors && json.errors.length)) {
+      var msg = (json.errors && json.errors[0] && json.errors[0].message) || ('Request error ' + res.status);
+      throw new Error(msg);
+    }
+
+    return json.data;
   }
 
-  async function initData() {
-    els.appError.classList.add('hidden');
-    els.loadingState.classList.remove('hidden');
-
+  /* -------------------------------------------------------
+     Load Config & Initial Home Data
+     ------------------------------------------------------- */
+  async function loadConfig() {
     try {
-      var results = await Promise.all([
-        loadJsonFile('config.json'),
-        loadJsonFile('catalog.json')
-      ]);
+      var res = await fetch('config.json', { cache: 'no-store' });
+      if (res.ok) {
+        state.config = await res.json();
+      }
+    } catch (e) {}
 
-      state.config = results[0];
-      state.catalog = results[1];
-
-      state.allowlistSet = new Set(
-        (state.config.allowlistChannels || []).map(function (c) { return c.id; })
-      );
-
-      applyConfigToUI();
-      populateFilters();
-      els.loadingState.classList.add('hidden');
-      renderContinueWatching();
-      renderBrowse();
-      handleRouteFromHash();
-    } catch (err) {
-      els.loadingState.classList.add('hidden');
-      els.appErrorMsg.textContent = err.message || 'Unable to load catalog files.';
-      els.appError.classList.remove('hidden');
-    }
-  }
-
-  function applyConfigToUI() {
     var cfg = state.config || {};
     var name = cfg.siteName || 'Akairis';
     els.siteName.textContent = name;
     els.footerSiteName.textContent = name;
-    if (cfg.tagline) {
-      els.siteTagline.textContent = cfg.tagline;
-    }
+    if (cfg.tagline) els.siteTagline.textContent = cfg.tagline;
 
     var disc = cfg.disclaimer || {};
-    els.aboutStatement.textContent = disc.statement || '';
+    els.aboutStatement.textContent =
+      disc.statement || 'Akairis is an independent anime and character encyclopedia.';
     var email = disc.takedownEmail || 'takedown@example.com';
     els.takedownEmailLink.textContent = email;
     els.takedownEmailLink.href = 'mailto:' + email;
 
-    els.allowlistList.innerHTML = '';
-    (cfg.allowlistChannels || []).forEach(function (ch) {
+    els.sourcesList.innerHTML = '';
+    var sources = cfg.dataSources || [
+      { name: 'AniList Open GraphQL API', url: 'https://anilist.co', role: 'Anime & character metadata' }
+    ];
+    sources.forEach(function (src) {
       var li = document.createElement('li');
-      var linkHtml = ch.url
-        ? ' — <a class="crimson-link" href="' + escapeHtml(ch.url) + '" target="_blank" rel="noopener noreferrer">Visit Channel ↗</a>'
-        : '';
       li.innerHTML =
-        '<strong>' + escapeHtml(ch.name) + '</strong> (' + escapeHtml(ch.type || 'official') + ')' + linkHtml;
-      els.allowlistList.appendChild(li);
+        '<strong>' + escapeHtml(src.name) + '</strong> (' + escapeHtml(src.role || 'Metadata') + ')' +
+        (src.url ? ' — <a class="crimson-link" href="' + escapeHtml(src.url) + '" target="_blank" rel="noopener noreferrer">Website ↗</a>' : '');
+      els.sourcesList.appendChild(li);
     });
   }
 
-  function getAllowedMovies() {
-    return ((state.catalog && state.catalog.movies) || []).filter(function (m) {
-      return isChannelAllowed(m.channelId);
-    });
-  }
-
-  function getAllowedShows() {
-    return ((state.catalog && state.catalog.shows) || []).filter(function (s) {
-      return (s.seasons || []).some(function (season) {
-        var tracks = season.tracks || {};
-        var subOk = tracks.sub && isChannelAllowed(tracks.sub.channelId) && (tracks.sub.episodes || []).length > 0;
-        var hiOk = tracks.hi && isChannelAllowed(tracks.hi.channelId) && (tracks.hi.episodes || []).length > 0;
-        return subOk || hiOk;
-      });
-    });
-  }
-
-  function populateFilters() {
-    var genres = new Set();
-    var languages = new Set();
-    var tags = new Set(['anime-movies']);
-
-    getAllowedMovies().forEach(function (m) {
-      (m.genres || []).forEach(function (g) { genres.add(g); });
-      if (m.language) languages.add(m.language);
-      (m.tags || []).forEach(function (t) { tags.add(t); });
-    });
-
-    getAllowedShows().forEach(function (s) {
-      (s.genres || []).forEach(function (g) { genres.add(g); });
-      (s.tags || []).forEach(function (t) { tags.add(t); });
-      (s.seasons || []).forEach(function (season) {
-        var tracks = season.tracks || {};
-        if (tracks.sub && isChannelAllowed(tracks.sub.channelId)) languages.add('Sub / EN');
-        if (tracks.hi && isChannelAllowed(tracks.hi.channelId)) languages.add('Hindi Dub');
-      });
-    });
-
-    fillSelect(els.genreFilter, 'All Genres', Array.from(genres).sort());
-    fillSelect(els.languageFilter, 'All Languages', Array.from(languages).sort());
-    fillSelect(els.tagFilter, 'All Categories / Tags', Array.from(tags).sort());
-  }
-
-  function fillSelect(selectEl, defaultLabel, items) {
-    var current = selectEl.value || 'all';
-    selectEl.innerHTML = '<option value="all">' + escapeHtml(defaultLabel) + '</option>';
-    items.forEach(function (val) {
+  function populateYearFilter() {
+    var currentYear = new Date().getFullYear() + 1;
+    els.yearFilter.innerHTML = '<option value="all">All Years</option>';
+    for (var y = currentYear; y >= 1970; y--) {
       var opt = document.createElement('option');
-      opt.value = val;
-      opt.textContent = val;
-      selectEl.appendChild(opt);
-    });
-    if (items.indexOf(current) !== -1) {
-      selectEl.value = current;
+      opt.value = String(y);
+      opt.textContent = String(y);
+      els.yearFilter.appendChild(opt);
     }
   }
 
-  function matchesCommonFilters(item) {
-    if (!state.showMature && item.mature === true) return false;
-    if (state.genre !== 'all' && (item.genres || []).indexOf(state.genre) === -1) return false;
-    if (state.tag !== 'all' && (item.tags || []).indexOf(state.tag) === -1) return false;
-    if (state.search.trim()) {
-      var q = state.search.trim().toLowerCase();
-      var hay = [item.title, item.synopsis, (item.genres || []).join(' '), (item.tags || []).join(' '), item.language || ''].join(' ').toLowerCase();
-      if (hay.indexOf(q) === -1) return false;
-    }
-    return true;
+  async function loadHomeData() {
+    setIntroMessage('Loading Trending & Seasonal Anime...');
+    var adultArg = state.showMature ? undefined : false;
+
+    var q =
+      'query ($isAdult: Boolean) {' +
+        'GenreCollection ' +
+        'trending: Page(page: 1, perPage: 8) { media(type: ANIME, sort: [TRENDING_DESC], isAdult: $isAdult) { ' + MEDIA_CARD_FIELDS + ' } } ' +
+        'airing: Page(page: 1, perPage: 8) { media(type: ANIME, status: RELEASING, sort: [POPULARITY_DESC], isAdult: $isAdult) { ' + MEDIA_CARD_FIELDS + ' } } ' +
+        'top: Page(page: 1, perPage: 8) { media(type: ANIME, sort: [SCORE_DESC], isAdult: $isAdult) { ' + MEDIA_CARD_FIELDS + ' } } ' +
+        'movies: Page(page: 1, perPage: 8) { media(type: ANIME, format: MOVIE, sort: [SCORE_DESC], isAdult: $isAdult) { ' + MEDIA_CARD_FIELDS + ' } } ' +
+      '}';
+
+    var data = await queryAniList(q, { isAdult: adultArg });
+    state.homeData = data;
+    state.homeLoaded = true;
+
+    populateGenres(data.GenreCollection || []);
+    renderHomeSections();
   }
 
-  function matchesMovieFilters(movie) {
-    if (!matchesCommonFilters(movie)) return false;
-    if (state.language !== 'all' && movie.language !== state.language) return false;
-    return true;
-  }
-
-  function matchesShowFilters(show) {
-    if (!matchesCommonFilters(show)) return false;
-    if (state.language !== 'all') {
-      var hasLang = (show.seasons || []).some(function (season) {
-        var tracks = season.tracks || {};
-        if (state.language === 'Sub / EN' || state.language === 'English') {
-          return Boolean(tracks.sub && isChannelAllowed(tracks.sub.channelId));
-        }
-        if (state.language === 'Hindi Dub' || state.language === 'Hindi') {
-          return Boolean(tracks.hi && isChannelAllowed(tracks.hi.channelId));
-        }
-        return false;
-      });
-      if (!hasLang) return false;
-    }
-    return true;
-  }
-
-  function sortItems(items) {
-    var copy = items.slice();
-    if (state.sort === 'az') {
-      copy.sort(function (a, b) { return String(a.title).localeCompare(String(b.title)); });
-    } else if (state.sort === 'year') {
-      copy.sort(function (a, b) { return (b.year || 0) - (a.year || 0); });
-    } else {
-      copy.sort(function (a, b) {
-        var da = a.addedAt ? Date.parse(a.addedAt) : 0;
-        var db = b.addedAt ? Date.parse(b.addedAt) : 0;
-        return db - da;
-      });
-    }
-    return copy;
-  }
-
-  function getShowPreviewInfo(show) {
-    var s0 = (show.seasons || [])[0];
-    if (!s0 || !s0.tracks) return { videoId: '', hasSub: false, hasHi: false, epCount: 0 };
-    var hasSub = Boolean(s0.tracks.sub && isChannelAllowed(s0.tracks.sub.channelId) && (s0.tracks.sub.episodes || []).length);
-    var hasHi = Boolean(s0.tracks.hi && isChannelAllowed(s0.tracks.hi.channelId) && (s0.tracks.hi.episodes || []).length);
-    var firstEp = hasSub ? s0.tracks.sub.episodes[0] : (hasHi ? s0.tracks.hi.episodes[0] : null);
-    var epCount = hasSub ? s0.tracks.sub.episodes.length : (hasHi ? s0.tracks.hi.episodes.length : 0);
-    return {
-      videoId: firstEp ? firstEp.videoId : '',
-      hasSub: hasSub,
-      hasHi: hasHi,
-      epCount: epCount
-    };
-  }
-
-  function renderHero(movies, shows) {
-    var isDefaultBrowse =
-      state.activeTab === 'all' &&
-      !state.search.trim() &&
-      state.genre === 'all' &&
-      state.language === 'all' &&
-      state.tag === 'all';
-
-    if (!isDefaultBrowse || state.detail || state.theater) {
-      els.heroBanner.classList.add('hidden');
-      return;
-    }
-
-    var pool = movies.map(function (m) { return { type: 'movie', item: m }; })
-      .concat(shows.map(function (s) { return { type: 'show', item: s }; }))
-      .filter(function (entry) { return state.showMature || !entry.item.mature; });
-
-    if (!pool.length) {
-      els.heroBanner.classList.add('hidden');
-      return;
-    }
-
-    var featured = pool.find(function (e) { return e.item.featured === true; }) || pool[0];
-    var videoId = featured.type === 'movie'
-      ? featured.item.videoId
-      : getShowPreviewInfo(featured.item).videoId;
-
-    els.heroBanner.classList.remove('hidden');
-    els.heroTitle.textContent = featured.item.title;
-    els.heroMeta.textContent = featured.type === 'movie'
-      ? [featured.item.year, featured.item.duration, featured.item.language].filter(Boolean).join(' · ')
-      : [featured.item.year, 'Anime Series', (featured.item.genres || []).slice(0, 2).join(', ')].filter(Boolean).join(' · ');
-    els.heroSynopsis.textContent = featured.item.synopsis || '';
-
-    els.heroBgImg.dataset.fallbackTried = '';
-    els.heroBgImg.src = thumbUrl(videoId, 'maxresdefault');
-    attachThumbFallback(els.heroBgImg, videoId);
-
-    els.heroWatchBtn.onclick = function () {
-      if (featured.type === 'movie') openMovieInTheater(featured.item.id);
-      else openShowInTheater(featured.item.id);
-    };
-    els.heroDetailBtn.onclick = function () {
-      openDetailView(featured.type, featured.item.id);
-    };
-  }
-
-  function renderSpecialRows(movies, shows) {
-    var showRows =
-      state.activeTab === 'all' &&
-      !state.search.trim() &&
-      state.genre === 'all' &&
-      state.language === 'all' &&
-      state.tag === 'all';
-
-    if (!showRows) {
-      els.trendingSection.classList.add('hidden');
-      els.recentSection.classList.add('hidden');
-      return;
-    }
-
-    var allPool = movies.map(function (m) { return { type: 'movie', item: m }; })
-      .concat(shows.map(function (s) { return { type: 'show', item: s }; }))
-      .filter(function (entry) { return state.showMature || !entry.item.mature; });
-
-    var trending = allPool.filter(function (e) { return e.item.trending === true; });
-    if (!trending.length) {
-      trending = allPool.slice(0, 3);
-    }
-    els.trendingGrid.innerHTML = '';
-    trending.slice(0, 6).forEach(function (entry) {
-      els.trendingGrid.appendChild(entry.type === 'movie' ? createMovieCard(entry.item) : createShowCard(entry.item));
-    });
-    els.trendingSection.classList.toggle('hidden', trending.length === 0);
-
-    var recent = allPool.slice().sort(function (a, b) {
-      var da = a.item.addedAt ? Date.parse(a.item.addedAt) : 0;
-      var db = b.item.addedAt ? Date.parse(b.item.addedAt) : 0;
-      return db - da;
-    });
-    els.recentGrid.innerHTML = '';
-    recent.slice(0, 3).forEach(function (entry) {
-      els.recentGrid.appendChild(entry.type === 'movie' ? createMovieCard(entry.item) : createShowCard(entry.item));
-    });
-    els.recentSection.classList.toggle('hidden', recent.length === 0);
-  }
-
-  function renderBrowse() {
-    if (!state.catalog) return;
-
-    var isCredits = state.activeTab === 'credits';
-    var isDetail = Boolean(state.detail) && !isCredits;
-    var isWatching = Boolean(state.theater) && !isCredits && !isDetail;
-
-    els.creditsView.classList.toggle('hidden', !isCredits);
-    els.detailView.classList.toggle('hidden', !isDetail);
-    els.browseView.classList.toggle('hidden', isCredits || isDetail || isWatching);
-
-    if (isCredits || isDetail || isWatching) return;
-
-    var movies = getAllowedMovies();
-    var shows = getAllowedShows();
-
-    renderHero(movies, shows);
-    renderSpecialRows(movies, shows);
-
-    var filteredMovies = sortItems(movies.filter(matchesMovieFilters));
-    var filteredShows = sortItems(shows.filter(matchesShowFilters));
-
-    if (state.activeTab === 'watchlist') {
-      els.moviesSection.classList.add('hidden');
-      els.showsSection.classList.add('hidden');
-
-      var savedMovies = movies.filter(function (m) {
-        return (state.showMature || !m.mature) && isBookmarked('movie', m.id);
-      });
-      var savedShows = shows.filter(function (s) {
-        return (state.showMature || !s.mature) && isBookmarked('show', s.id);
-      });
-
-      els.bookmarksGrid.innerHTML = '';
-      savedMovies.forEach(function (m) { els.bookmarksGrid.appendChild(createMovieCard(m)); });
-      savedShows.forEach(function (s) { els.bookmarksGrid.appendChild(createShowCard(s)); });
-
-      var totalSaved = savedMovies.length + savedShows.length;
-      els.bookmarksCount.textContent = String(totalSaved);
-      els.bookmarksSection.classList.toggle('hidden', totalSaved === 0);
-
-      if (totalSaved === 0 && state.history.length === 0) {
-        els.emptyTitle.textContent = 'Your watchlist is empty';
-        els.emptyDesc.textContent = 'Tap ☆ on any movie or anime show to save it here.';
-        els.emptyState.classList.remove('hidden');
-      } else {
-        els.emptyState.classList.add('hidden');
-      }
-      return;
-    }
-
-    els.bookmarksSection.classList.add('hidden');
-
-    var showMoviesSection = state.activeTab === 'all' || state.activeTab === 'movies';
-    var showShowsSection = state.activeTab === 'all' || state.activeTab === 'anime';
-
-    els.moviesGrid.innerHTML = '';
-    if (showMoviesSection) {
-      filteredMovies.forEach(function (m) { els.moviesGrid.appendChild(createMovieCard(m)); });
-    }
-    els.moviesCount.textContent = String(filteredMovies.length);
-    els.moviesSection.classList.toggle('hidden', !showMoviesSection || filteredMovies.length === 0);
-
-    els.showsGrid.innerHTML = '';
-    if (showShowsSection) {
-      filteredShows.forEach(function (s) { els.showsGrid.appendChild(createShowCard(s)); });
-    }
-    els.showsCount.textContent = String(filteredShows.length);
-    els.showsSection.classList.toggle('hidden', !showShowsSection || filteredShows.length === 0);
-
-    var anyVisible = (showMoviesSection && filteredMovies.length > 0) || (showShowsSection && filteredShows.length > 0);
-    if (!anyVisible) {
-      els.emptyTitle.textContent = 'No matches found';
-      els.emptyDesc.textContent = 'Try clearing your search or changing your filters.';
-      els.emptyState.classList.remove('hidden');
-    } else {
-      els.emptyState.classList.add('hidden');
-    }
-  }
-
-  function createMovieCard(movie) {
-    var card = document.createElement('article');
-    card.className = 'media-card';
-
-    var saved = isBookmarked('movie', movie.id);
-    var isAnimeMovie = (movie.tags || []).indexOf('anime-movies') !== -1;
-    var badgeText = isAnimeMovie ? 'Anime Movie' : 'Movie';
-
-    card.innerHTML =
-      '<button class="card-thumb-btn" type="button" aria-label="Watch ' + escapeHtml(movie.title) + '">' +
-        '<img alt="' + escapeHtml(movie.title) + ' thumbnail" loading="lazy">' +
-        '<span class="card-tag-overlay">' + escapeHtml(badgeText) + '</span>' +
-      '</button>' +
-      '<div class="card-body">' +
-        '<div class="card-title-row">' +
-          '<button class="card-title-btn" type="button"><h3 class="card-title">' + escapeHtml(movie.title) + '</h3></button>' +
-          '<button class="bookmark-icon-btn ' + (saved ? 'is-saved' : '') + '" type="button" aria-label="Toggle bookmark">' + (saved ? '★' : '☆') + '</button>' +
-        '</div>' +
-        '<div class="card-meta">' + escapeHtml(movie.year) + ' · ' + escapeHtml(movie.duration || '') + ' · ' + escapeHtml(movie.language || '') + '</div>' +
-        '<p class="card-synopsis">' + escapeHtml(movie.synopsis) + '</p>' +
-        '<div class="card-footer-row">' +
-          '<div class="card-chips">' +
-            (movie.genres || []).slice(0, 2).map(function (g) {
-              return '<span class="chip">' + escapeHtml(g) + '</span>';
-            }).join('') +
-          '</div>' +
-          '<button class="text-link-btn card-info-btn" type="button">Details →</button>' +
-        '</div>' +
-      '</div>';
-
-    var img = card.querySelector('img');
-    img.src = thumbUrl(movie.videoId, 'maxresdefault');
-    attachThumbFallback(img, movie.videoId);
-
-    card.querySelector('.card-thumb-btn').addEventListener('click', function () {
-      openMovieInTheater(movie.id);
-    });
-    card.querySelector('.card-title-btn').addEventListener('click', function () {
-      openDetailView('movie', movie.id);
-    });
-    card.querySelector('.card-info-btn').addEventListener('click', function () {
-      openDetailView('movie', movie.id);
-    });
-    card.querySelector('.bookmark-icon-btn').addEventListener('click', function () {
-      toggleBookmark('movie', movie.id);
-    });
-
-    return card;
-  }
-
-  function createShowCard(show) {
-    var card = document.createElement('article');
-    card.className = 'media-card';
-
-    var info = getShowPreviewInfo(show);
-    var saved = isBookmarked('show', show.id);
-
-    card.innerHTML =
-      '<button class="card-thumb-btn" type="button" aria-label="Watch ' + escapeHtml(show.title) + '">' +
-        '<img alt="' + escapeHtml(show.title) + ' thumbnail" loading="lazy">' +
-        '<span class="card-tag-overlay">Anime · ' + (show.seasons || []).length + ' Season</span>' +
-      '</button>' +
-      '<div class="card-body">' +
-        '<div class="card-title-row">' +
-          '<button class="card-title-btn" type="button"><h3 class="card-title">' + escapeHtml(show.title) + '</h3></button>' +
-          '<button class="bookmark-icon-btn ' + (saved ? 'is-saved' : '') + '" type="button" aria-label="Toggle bookmark">' + (saved ? '★' : '☆') + '</button>' +
-        '</div>' +
-        '<div class="card-meta">' + escapeHtml(show.year) + ' · ' + escapeHtml(info.epCount) + ' Ep listed</div>' +
-        '<p class="card-synopsis">' + escapeHtml(show.synopsis) + '</p>' +
-        '<div class="card-footer-row">' +
-          '<div class="card-chips">' +
-            (info.hasSub ? '<span class="chip">Sub / EN</span>' : '') +
-            (info.hasHi ? '<span class="chip chip-dub">Hindi Dub</span>' : '') +
-          '</div>' +
-          '<button class="text-link-btn card-info-btn" type="button">Details →</button>' +
-        '</div>' +
-      '</div>';
-
-    var img = card.querySelector('img');
-    if (info.videoId) {
-      img.src = thumbUrl(info.videoId, 'maxresdefault');
-      attachThumbFallback(img, info.videoId);
-    }
-
-    card.querySelector('.card-thumb-btn').addEventListener('click', function () {
-      openShowInTheater(show.id);
-    });
-    card.querySelector('.card-title-btn').addEventListener('click', function () {
-      openDetailView('show', show.id);
-    });
-    card.querySelector('.card-info-btn').addEventListener('click', function () {
-      openDetailView('show', show.id);
-    });
-    card.querySelector('.bookmark-icon-btn').addEventListener('click', function () {
-      toggleBookmark('show', show.id);
-    });
-
-    return card;
-  }
-
-  function renderContinueWatching() {
-    if (!state.catalog) return;
-    var validHistory = state.history.filter(function (item) {
-      if (item.type === 'movie') {
-        return getAllowedMovies().some(function (m) {
-          return m.id === item.id && (state.showMature || !m.mature);
-        });
-      }
-      return getAllowedShows().some(function (s) {
-        return s.id === item.id && (state.showMature || !s.mature);
-      });
-    });
-
-    els.continueGrid.innerHTML = '';
-    els.continueSection.classList.toggle('hidden', validHistory.length === 0);
-
-    validHistory.slice(0, 6).forEach(function (item) {
-      var savedSec = state.positions[item.videoId];
-      var posText = savedSec ? ' · ' + formatTime(savedSec) : '';
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'continue-card';
-      btn.innerHTML =
-        '<img alt="' + escapeHtml(item.title) + '" loading="lazy">' +
-        '<div class="continue-info">' +
-          '<h3>' + escapeHtml(item.title) + '</h3>' +
-          '<p>' + escapeHtml(item.subtitle + posText) + '</p>' +
-        '</div>';
-
-      var img = btn.querySelector('img');
-      img.src = thumbUrl(item.videoId, 'hqdefault');
-
-      btn.addEventListener('click', function () {
-        if (item.type === 'movie') {
-          openMovieInTheater(item.id);
-        } else {
-          openShowInTheater(item.id, item.seasonIndex || 0, item.track || 'sub', item.ep || 1);
-        }
-      });
-
-      els.continueGrid.appendChild(btn);
-    });
-  }
-
-  /* -------------------------------------------------------
-     Shared Related Titles Helper
-     ------------------------------------------------------- */
-  function fillRelatedGrid(sectionEl, gridEl, currentType, currentItem) {
-    var genres = currentItem.genres || [];
-    var pool = getAllowedMovies().map(function (m) { return { type: 'movie', item: m }; })
-      .concat(getAllowedShows().map(function (s) { return { type: 'show', item: s }; }))
-      .filter(function (entry) {
-        if (entry.type === currentType && entry.item.id === currentItem.id) return false;
-        if (!state.showMature && entry.item.mature) return false;
-        return (entry.item.genres || []).some(function (g) { return genres.indexOf(g) !== -1; });
-      });
-
-    gridEl.innerHTML = '';
-    pool.slice(0, 3).forEach(function (entry) {
-      gridEl.appendChild(entry.type === 'movie' ? createMovieCard(entry.item) : createShowCard(entry.item));
-    });
-    sectionEl.classList.toggle('hidden', pool.length === 0);
-  }
-
-  /* -------------------------------------------------------
-     Title Detail View & Shareable Hash Links
-     ------------------------------------------------------- */
-  function openDetailView(type, id, updateHash) {
-    destroyActivePlayer();
-    state.theater = null;
-    els.theaterSection.classList.add('hidden');
-
-    if (updateHash !== false) {
-      var targetHash = '#' + type + '/' + id;
-      if (window.location.hash !== targetHash) {
-        window.location.hash = targetHash;
-      }
-    }
-
-    var item = type === 'movie'
-      ? getAllowedMovies().find(function (m) { return m.id === id; })
-      : getAllowedShows().find(function (s) { return s.id === id; });
-
-    if (!item) return;
-
-    state.detail = { type: type, id: id, seasonIndex: 0, track: 'sub' };
-    if (state.activeTab === 'credits') {
-      state.activeTab = 'all';
-      els.navBtns.forEach(function (b) { b.classList.toggle('is-active', b.dataset.tab === 'all'); });
-    }
-    renderDetailView();
-    renderBrowse();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  function closeDetailView(clearHash) {
-    state.detail = null;
-    if (clearHash && window.location.hash) {
-      history.replaceState(null, '', window.location.pathname + window.location.search);
-    }
-    renderBrowse();
-  }
-
-  function updateDetailBookmarkBtn() {
-    if (!state.detail) return;
-    var saved = isBookmarked(state.detail.type, state.detail.id);
-    els.detailBookmarkBtn.textContent = saved ? '★ Saved' : '☆ Save';
-  }
-
-  function renderDetailView() {
-    if (!state.detail) return;
-    var d = state.detail;
-    var item = d.type === 'movie'
-      ? getAllowedMovies().find(function (m) { return m.id === d.id; })
-      : getAllowedShows().find(function (s) { return s.id === d.id; });
-
-    if (!item) return;
-
-    var videoId = d.type === 'movie' ? item.videoId : getShowPreviewInfo(item).videoId;
-    els.detailThumb.dataset.fallbackTried = '';
-    els.detailThumb.src = thumbUrl(videoId, 'maxresdefault');
-    attachThumbFallback(els.detailThumb, videoId);
-
-    els.detailTypeBadge.textContent = d.type === 'movie'
-      ? ((item.tags || []).indexOf('anime-movies') !== -1 ? 'Anime Movie' : 'Movie')
-      : 'Anime Series';
-    els.detailYearBadge.textContent = item.year ? String(item.year) : '';
-    els.detailLangBadge.textContent = d.type === 'movie'
-      ? (item.language || 'Official')
-      : (getShowPreviewInfo(item).hasHi ? 'Sub / EN & Hindi Dub' : 'Sub / EN');
-    els.detailTitle.textContent = item.title;
-    els.detailSynopsis.textContent = item.synopsis || '';
-    els.detailShareStatus.classList.add('hidden');
-
-    els.detailGenres.innerHTML = (item.genres || []).map(function (g) {
-      return '<span class="chip">' + escapeHtml(g) + '</span>';
-    }).join('');
-
-    updateDetailBookmarkBtn();
-
-    els.detailWatchBtn.onclick = function () {
-      if (d.type === 'movie') {
-        openMovieInTheater(item.id);
-      } else {
-        openShowInTheater(item.id, d.seasonIndex, d.track);
-      }
-    };
-
-    if (d.type === 'show') {
-      renderDetailEpisodes(item);
-    } else {
-      els.detailEpisodesWrap.classList.add('hidden');
-    }
-
-    fillRelatedGrid(els.detailRelatedSection, els.detailRelatedGrid, d.type, item);
-  }
-
-  function renderDetailEpisodes(show) {
-    els.detailEpisodesWrap.classList.remove('hidden');
-    var season = show.seasons[state.detail.seasonIndex] || show.seasons[0];
-    state.detail.track = chooseAvailableTrack(season, state.detail.track);
-
-    els.detailSeasonSelect.innerHTML = '';
-    show.seasons.forEach(function (s, idx) {
+  function populateGenres(genres) {
+    var current = els.genreFilter.value || 'all';
+    els.genreFilter.innerHTML = '<option value="all">All Genres</option>';
+    genres.filter(function (g) {
+      return state.showMature || g !== 'Hentai';
+    }).forEach(function (g) {
       var opt = document.createElement('option');
-      opt.value = String(idx);
-      opt.textContent = s.title || ('Season ' + s.seasonNumber);
-      els.detailSeasonSelect.appendChild(opt);
+      opt.value = g;
+      opt.textContent = g;
+      els.genreFilter.appendChild(opt);
     });
-    els.detailSeasonSelect.value = String(state.detail.seasonIndex);
-
-    var hasSub = getTrackEpisodes(season, 'sub').length > 0;
-    var hasHi = getTrackEpisodes(season, 'hi').length > 0;
-    els.detailTrackToggle.classList.toggle('hidden', !(hasSub && hasHi));
-    els.detailTrackSub.classList.toggle('is-active', state.detail.track === 'sub');
-    els.detailTrackHi.classList.toggle('is-active', state.detail.track === 'hi');
-
-    var episodes = getTrackEpisodes(season, state.detail.track);
-    els.detailEpisodeList.innerHTML = '';
-    episodes.forEach(function (ep) {
-      var watched = isEpisodeWatched(show.id, season.seasonNumber, ep.ep);
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'ep-btn';
-      btn.innerHTML =
-        '<div class="ep-btn-top">' +
-          '<span class="ep-num">Episode ' + escapeHtml(ep.ep) + (ep.duration ? ' · ' + escapeHtml(ep.duration) : '') + '</span>' +
-          (watched ? '<span class="ep-watched-tag">✓ Watched</span>' : '') +
-        '</div>' +
-        '<span class="ep-title">' + escapeHtml(ep.title) + '</span>';
-      btn.addEventListener('click', function () {
-        openShowInTheater(show.id, state.detail.seasonIndex, state.detail.track, ep.ep);
-      });
-      els.detailEpisodeList.appendChild(btn);
-    });
+    els.genreFilter.value = current;
   }
 
-  function handleRouteFromHash() {
-    var hash = window.location.hash || '';
-    var match = hash.match(/^#(movie|show)\/([a-zA-Z0-9_-]+)$/);
-    if (match) {
-      openDetailView(match[1], match[2], false);
-    } else if (state.detail) {
-      state.detail = null;
-      renderBrowse();
-    }
-  }
+  function renderHomeSections() {
+    if (!state.homeData) return;
+    var trending = (state.homeData.trending && state.homeData.trending.media) || [];
+    var airing = (state.homeData.airing && state.homeData.airing.media) || [];
+    var top = (state.homeData.top && state.homeData.top.media) || [];
+    var movies = (state.homeData.movies && state.homeData.movies.media) || [];
 
-  /* -------------------------------------------------------
-     Theater Player & Option A Custom Crimson Controls
-     ------------------------------------------------------- */
-  function cancelAutoplayCountdown() {
-    if (state.autoplayTimer) {
-      clearInterval(state.autoplayTimer);
-      state.autoplayTimer = null;
-    }
-    els.autoplayBanner.classList.add('hidden');
-  }
-
-  function stopProgressPolling() {
-    if (state.progressTimer) {
-      clearInterval(state.progressTimer);
-      state.progressTimer = null;
-    }
-  }
-
-  function destroyActivePlayer() {
-    cancelAutoplayCountdown();
-    stopProgressPolling();
-    if (state.ytPlayerInstance && typeof state.ytPlayerInstance.destroy === 'function') {
-      try { state.ytPlayerInstance.destroy(); } catch (e) {}
-    }
-    state.ytPlayerInstance = null;
-    els.playerStage.innerHTML = '';
-    els.customControls.classList.add('hidden');
-    els.ccPlayBtn.textContent = '▶';
-    els.ccSeek.value = '0';
-    els.ccTime.textContent = '0:00 / 0:00';
-  }
-
-  function closeTheater() {
-    destroyActivePlayer();
-    state.theater = null;
-    els.theaterSection.classList.add('hidden');
-    renderBrowse();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  function openMovieInTheater(movieId) {
-    var movie = getAllowedMovies().find(function (m) { return m.id === movieId; });
-    if (!movie) return;
-
-    state.detail = null;
-    if (state.activeTab === 'credits') {
-      state.activeTab = 'all';
-      els.navBtns.forEach(function (b) { b.classList.toggle('is-active', b.dataset.tab === 'all'); });
-    }
-    state.theater = { type: 'movie', id: movie.id };
-    renderBrowse();
-    renderTheater();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  function openShowInTheater(showId, seasonIndex, preferredTrack, preferredEp) {
-    var show = getAllowedShows().find(function (s) { return s.id === showId; });
-    if (!show) return;
-
-    state.detail = null;
-    if (state.activeTab === 'credits') {
-      state.activeTab = 'all';
-      els.navBtns.forEach(function (b) { b.classList.toggle('is-active', b.dataset.tab === 'all'); });
-    }
-
-    var sIdx = typeof seasonIndex === 'number' && show.seasons[seasonIndex] ? seasonIndex : 0;
-    var season = show.seasons[sIdx];
-    var track = chooseAvailableTrack(season, preferredTrack);
-    var episodes = getTrackEpisodes(season, track);
-    var epObj = episodes.find(function (e) { return e.ep === preferredEp; }) || episodes[0];
-
-    state.theater = {
-      type: 'show',
-      id: show.id,
-      seasonIndex: sIdx,
-      track: track,
-      epNumber: epObj ? epObj.ep : 1,
-      notice: ''
-    };
-
-    renderBrowse();
-    renderTheater();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  function chooseAvailableTrack(season, preferred) {
-    var tracks = (season && season.tracks) || {};
-    var hasSub = Boolean(tracks.sub && isChannelAllowed(tracks.sub.channelId) && (tracks.sub.episodes || []).length);
-    var hasHi = Boolean(tracks.hi && isChannelAllowed(tracks.hi.channelId) && (tracks.hi.episodes || []).length);
-    if (preferred === 'hi' && hasHi) return 'hi';
-    if (preferred === 'sub' && hasSub) return 'sub';
-    return hasSub ? 'sub' : 'hi';
-  }
-
-  function getTrackEpisodes(season, trackKey) {
-    var trackObj = season && season.tracks && season.tracks[trackKey];
-    if (!trackObj || !isChannelAllowed(trackObj.channelId)) return [];
-    return trackObj.episodes || [];
-  }
-
-  function updateTheaterBookmarkBtn() {
-    if (!state.theater) return;
-    var saved = isBookmarked(state.theater.type, state.theater.id);
-    els.theaterBookmarkBtn.textContent = saved ? '★ Saved' : '☆ Save';
-  }
-
-  function renderTheater() {
-    if (!state.theater) return;
-    destroyActivePlayer();
-    els.theaterSection.classList.remove('hidden');
-    els.trackNotice.classList.add('hidden');
-    els.trackNotice.textContent = '';
-
-    if (state.theater.type === 'movie') {
-      var movie = getAllowedMovies().find(function (m) { return m.id === state.theater.id; });
-      if (!movie) return;
-
-      els.theaterTypeBadge.textContent = (movie.tags || []).indexOf('anime-movies') !== -1 ? 'Anime Movie' : 'Movie';
-      els.theaterWatchedBadge.classList.add('hidden');
-      els.theaterTitle.textContent = movie.title;
-      els.theaterSubtitle.textContent = [movie.year, movie.duration, movie.language].filter(Boolean).join(' · ');
-      els.theaterSynopsis.textContent = movie.synopsis || '';
-
-      els.episodeNavControls.classList.add('hidden');
-      els.trackToggleGroup.classList.add('hidden');
-      els.episodePanel.classList.add('hidden');
-
-      updateTheaterBookmarkBtn();
-      renderPlayerPreview(movie.videoId, movie.title, movie.embeddable !== false);
-      fillRelatedGrid(els.theaterRelatedSection, els.theaterRelatedGrid, 'movie', movie);
-
-      recordHistory({
-        type: 'movie',
-        id: movie.id,
-        title: movie.title,
-        subtitle: 'Movie · ' + (movie.language || 'Official'),
-        videoId: movie.videoId,
-        updatedAt: Date.now()
-      });
-      return;
-    }
-
-    var show = getAllowedShows().find(function (s) { return s.id === state.theater.id; });
-    if (!show) return;
-
-    var season = show.seasons[state.theater.seasonIndex] || show.seasons[0];
-    var trackKey = chooseAvailableTrack(season, state.theater.track);
-    state.theater.track = trackKey;
-
-    var trackObj = season.tracks[trackKey];
-    var episodes = getTrackEpisodes(season, trackKey);
-    var epIndex = episodes.findIndex(function (e) { return e.ep === state.theater.epNumber; });
-    if (epIndex === -1) {
-      epIndex = 0;
-      state.theater.epNumber = episodes[0] ? episodes[0].ep : 1;
-    }
-    var currentEp = episodes[epIndex];
-    if (!currentEp) return;
-
-    var watched = isEpisodeWatched(show.id, season.seasonNumber, currentEp.ep);
-    var hasSub = getTrackEpisodes(season, 'sub').length > 0;
-    var hasHi = getTrackEpisodes(season, 'hi').length > 0;
-
-    els.theaterTypeBadge.textContent = 'Anime Series';
-    els.theaterWatchedBadge.classList.toggle('hidden', !watched);
-    els.theaterTitle.textContent = show.title;
-    els.theaterSubtitle.textContent =
-      (season.title || ('Season ' + season.seasonNumber)) +
-      ' · Episode ' + currentEp.ep + ': ' + currentEp.title +
-      ' (' + (trackObj.label || trackKey) + ')';
-    els.theaterSynopsis.textContent = show.synopsis || '';
-
-    els.episodeNavControls.classList.remove('hidden');
-    els.prevEpBtn.disabled = epIndex <= 0;
-    els.nextEpBtn.disabled = epIndex >= episodes.length - 1;
-    els.markWatchedBtn.textContent = watched ? '✓ Watched' : '✓ Mark Watched';
-
-    if (hasSub && hasHi) {
-      els.trackToggleGroup.classList.remove('hidden');
-      els.trackSubBtn.classList.toggle('is-active', trackKey === 'sub');
-      els.trackHiBtn.classList.toggle('is-active', trackKey === 'hi');
-    } else {
-      els.trackToggleGroup.classList.add('hidden');
-    }
-
-    if (state.theater.notice) {
-      els.trackNotice.textContent = state.theater.notice;
-      els.trackNotice.classList.remove('hidden');
-    }
-
-    els.episodePanel.classList.remove('hidden');
-    els.seasonSelect.innerHTML = '';
-    show.seasons.forEach(function (s, idx) {
-      var opt = document.createElement('option');
-      opt.value = String(idx);
-      opt.textContent = s.title || ('Season ' + s.seasonNumber);
-      els.seasonSelect.appendChild(opt);
-    });
-    els.seasonSelect.value = String(state.theater.seasonIndex);
-
-    els.episodeList.innerHTML = '';
-    episodes.forEach(function (ep) {
-      var epDone = isEpisodeWatched(show.id, season.seasonNumber, ep.ep);
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'ep-btn' + (ep.ep === currentEp.ep ? ' is-active' : '');
-      btn.innerHTML =
-        '<div class="ep-btn-top">' +
-          '<span class="ep-num">Episode ' + escapeHtml(ep.ep) + (ep.duration ? ' · ' + escapeHtml(ep.duration) : '') + '</span>' +
-          (epDone ? '<span class="ep-watched-tag">✓ Watched</span>' : '') +
-        '</div>' +
-        '<span class="ep-title">' + escapeHtml(ep.title) + '</span>';
-      btn.addEventListener('click', function () {
-        state.theater.epNumber = ep.ep;
-        state.theater.notice = '';
-        renderTheater();
-      });
-      els.episodeList.appendChild(btn);
-    });
-
-    updateTheaterBookmarkBtn();
-    renderPlayerPreview(currentEp.videoId, show.title + ' Episode ' + currentEp.ep, currentEp.embeddable !== false);
-    fillRelatedGrid(els.theaterRelatedSection, els.theaterRelatedGrid, 'show', show);
-
-    recordHistory({
-      type: 'show',
-      id: show.id,
-      seasonIndex: state.theater.seasonIndex,
-      track: trackKey,
-      ep: currentEp.ep,
-      title: show.title,
-      subtitle: 'S' + season.seasonNumber + ' · Ep ' + currentEp.ep + ' (' + (trackObj.label || trackKey) + ')',
-      videoId: currentEp.videoId,
-      updatedAt: Date.now()
-    });
-  }
-
-  function renderPlayerPreview(videoId, label, embeddable) {
-    if (!videoId || !embeddable) {
-      renderUnavailableStage(videoId, 'This video is currently unavailable or embedding is disabled by the rights holder.');
-      return;
-    }
-
-    var savedSec = state.positions[videoId] || 0;
-    var wrap = document.createElement('div');
-    wrap.className = 'thumb-loader';
-
-    var buttonsHtml = savedSec >= 10
-      ? '<button class="btn btn-primary thumb-resume-btn" type="button">▶ Resume from ' + escapeHtml(formatTime(savedSec)) + '</button>' +
-        '<button class="btn btn-secondary thumb-start-btn" type="button">↺ Start Over</button>'
-      : '<button class="btn btn-primary thumb-start-btn" type="button">▶ Play Video</button>';
-
-    wrap.innerHTML =
-      '<img alt="' + escapeHtml(label) + ' preview thumbnail">' +
-      '<div class="thumb-play-overlay">' +
-        '<button class="play-circle-btn" type="button" aria-label="Play ' + escapeHtml(label) + '">▶</button>' +
-        '<div class="thumb-action-row">' + buttonsHtml + '</div>' +
-      '</div>';
-
-    var img = wrap.querySelector('img');
-    img.src = thumbUrl(videoId, 'maxresdefault');
-    attachThumbFallback(img, videoId);
-
-    wrap.querySelector('.play-circle-btn').addEventListener('click', function () {
-      mountYouTubePlayer(videoId, label, savedSec >= 10 ? savedSec : 0);
-    });
-    var resumeBtn = wrap.querySelector('.thumb-resume-btn');
-    if (resumeBtn) {
-      resumeBtn.addEventListener('click', function () {
-        mountYouTubePlayer(videoId, label, savedSec);
-      });
-    }
-    wrap.querySelector('.thumb-start-btn').addEventListener('click', function () {
-      clearVideoPosition(videoId);
-      mountYouTubePlayer(videoId, label, 0);
-    });
-
-    els.playerStage.appendChild(wrap);
-  }
-
-  function renderUnavailableStage(videoId, message) {
-    destroyActivePlayer();
-    var watchUrl = videoId
-      ? 'https://www.youtube.com/watch?v=' + encodeURIComponent(videoId)
-      : 'https://www.youtube.com';
-
-    els.playerStage.innerHTML =
-      '<div class="player-unavailable">' +
-        '<p>' + escapeHtml(message) + '</p>' +
-        '<a class="btn btn-primary" href="' + watchUrl + '" target="_blank" rel="noopener noreferrer">Watch on YouTube ↗</a>' +
-      '</div>';
-  }
-
-  function ensureYouTubeApi() {
-    if (window.YT && window.YT.Player) {
-      return Promise.resolve(window.YT);
-    }
-    if (state.ytApiPromise) return state.ytApiPromise;
-
-    state.ytApiPromise = new Promise(function (resolve, reject) {
-      var timeoutId = setTimeout(function () {
-        reject(new Error('YouTube API timed out'));
-      }, 3500);
-
-      var prevReady = window.onYouTubeIframeAPIReady;
-      window.onYouTubeIframeAPIReady = function () {
-        clearTimeout(timeoutId);
-        if (typeof prevReady === 'function') prevReady();
-        resolve(window.YT);
+    if (trending.length) {
+      var hero = trending[0];
+      els.heroBanner.classList.remove('hidden');
+      els.heroTitle.textContent = getTitle(hero);
+      els.heroMeta.textContent = [
+        hero.format || 'ANIME',
+        hero.seasonYear,
+        hero.episodes ? hero.episodes + ' Ep' : null,
+        hero.averageScore ? '★ ' + hero.averageScore + '%' : null
+      ].filter(Boolean).join(' · ');
+      els.heroSynopsis.textContent = cleanPlainSynopsis(hero.description);
+      els.heroBgImg.src = hero.bannerImage || (hero.coverImage && hero.coverImage.extraLarge) || '';
+      els.heroReadBtn.onclick = function () {
+        openAnimeWiki(hero.id, getTitle(hero));
       };
+    }
 
-      var tag = document.createElement('script');
-      tag.src = 'https://www.youtube.com/iframe_api';
-      tag.async = true;
-      tag.onerror = function () {
-        clearTimeout(timeoutId);
-        reject(new Error('YouTube API script blocked'));
-      };
-      document.head.appendChild(tag);
-    });
-
-    return state.ytApiPromise;
+    fillAnimeGrid(els.trendingGrid, trending);
+    fillAnimeGrid(els.seasonGrid, airing);
+    fillAnimeGrid(els.topGrid, top);
+    fillAnimeGrid(els.moviesGrid, movies);
   }
 
-  function mountYouTubePlayer(videoId, label, startSeconds) {
-    destroyActivePlayer();
-    var mountDiv = document.createElement('div');
-    mountDiv.id = 'yt-player-mount';
-    els.playerStage.appendChild(mountDiv);
-
-    ensureYouTubeApi().then(function (YT) {
-      if (!document.getElementById('yt-player-mount')) return;
-
-      els.customControls.classList.remove('hidden');
-      state.lastSavedSec = 0;
-
-      state.ytPlayerInstance = new YT.Player('yt-player-mount', {
-        host: 'https://www.youtube-nocookie.com',
-        videoId: videoId,
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          rel: 0,
-          iv_load_policy: 3,
-          playsinline: 1,
-          start: startSeconds > 0 ? Math.floor(startSeconds) : 0
-        },
-        events: {
-          onReady: function (e) {
-            var player = e.target;
-            try {
-              player.setVolume(Number(els.ccVolume.value) || 100);
-              player.setPlaybackRate(Number(els.ccSpeed.value) || 1);
-            } catch (err) {}
-            startProgressPolling(videoId);
-          },
-          onStateChange: function (e) {
-            if (e.data === YT.PlayerState.PLAYING) {
-              els.ccPlayBtn.textContent = '⏸';
-              cancelAutoplayCountdown();
-            } else if (e.data === YT.PlayerState.PAUSED) {
-              els.ccPlayBtn.textContent = '▶';
-              try {
-                saveVideoPosition(videoId, state.ytPlayerInstance.getCurrentTime());
-                renderContinueWatching();
-              } catch (err) {}
-            } else if (e.data === YT.PlayerState.ENDED) {
-              els.ccPlayBtn.textContent = '▶';
-              clearVideoPosition(videoId);
-              handlePlaybackEnded();
-            }
-          },
-          onError: function () {
-            renderUnavailableStage(
-              videoId,
-              'This video cannot be played inside an embed (it may be region-restricted, private, or have embedding disabled).'
-            );
-          }
-        }
-      });
-    }).catch(function () {
-      els.customControls.classList.add('hidden');
-      var startParam = startSeconds > 0 ? '&start=' + Math.floor(startSeconds) : '';
-      els.playerStage.innerHTML =
-        '<iframe ' +
-          'src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(videoId) + '?autoplay=1&rel=0&iv_load_policy=3' + startParam + '" ' +
-          'title="' + escapeHtml(label) + '" ' +
-          'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" ' +
-          'referrerpolicy="strict-origin-when-cross-origin" ' +
-          'allowfullscreen>' +
-        '</iframe>';
+  function fillAnimeGrid(gridEl, list, append) {
+    if (!append) gridEl.innerHTML = '';
+    list.forEach(function (media) {
+      if (!media || (!state.showMature && media.isAdult)) return;
+      gridEl.appendChild(createAnimeCard(media));
     });
   }
 
-  function startProgressPolling(videoId) {
-    stopProgressPolling();
-    state.progressTimer = setInterval(function () {
-      var p = state.ytPlayerInstance;
-      if (!p || typeof p.getCurrentTime !== 'function') return;
-      try {
-        var cur = p.getCurrentTime() || 0;
-        var dur = p.getDuration() || 0;
+  function createAnimeCard(media, extraLabel) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'anime-card';
 
-        if (dur > 0 && !state.isSeeking) {
-          els.ccSeek.value = String(Math.round((cur / dur) * 1000));
-          els.ccTime.textContent = formatTime(cur) + ' / ' + formatTime(dur);
+    var tracked = state.tracker[String(media.id)];
+    var listBadge = tracked && tracked.status && tracked.status !== 'none'
+      ? '<span class="card-list-badge">' + escapeHtml(STATUS_LABELS[tracked.status] || tracked.status) + '</span>'
+      : '';
 
-          if (Math.abs(cur - state.lastSavedSec) >= 3) {
-            state.lastSavedSec = cur;
-            if (cur < dur - 12) {
-              saveVideoPosition(videoId, cur);
-            } else {
-              clearVideoPosition(videoId);
-            }
-          }
-        }
-      } catch (e) {}
-    }, 450);
+    var cover = (media.coverImage && (media.coverImage.large || media.coverImage.extraLarge)) || '';
+    var score = media.averageScore ? '<span class="card-score-overlay">★ ' + media.averageScore + '%</span>' : '';
+    var badge = extraLabel || media.format || 'ANIME';
+
+    btn.innerHTML =
+      '<div class="anime-poster-wrap">' +
+        '<img src="' + escapeHtml(cover) + '" alt="' + escapeHtml(getTitle(media)) + '" loading="lazy">' +
+        '<span class="card-tag-overlay">' + escapeHtml(badge) + '</span>' +
+        listBadge +
+        score +
+      '</div>' +
+      '<div class="anime-card-body">' +
+        '<h3 class="anime-card-title">' + escapeHtml(getTitle(media)) + '</h3>' +
+        '<div class="anime-card-meta">' +
+          escapeHtml([media.seasonYear || 'TBA', media.episodes ? media.episodes + ' Ep' : formatStatus(media.status)].filter(Boolean).join(' · ')) +
+        '</div>' +
+      '</div>';
+
+    btn.addEventListener('click', function () {
+      openAnimeWiki(media.id, getTitle(media));
+    });
+
+    return btn;
   }
 
-  function handlePlaybackEnded() {
-    if (!state.theater || state.theater.type !== 'show') return;
-    var show = getAllowedShows().find(function (s) { return s.id === state.theater.id; });
-    if (!show) return;
-    var season = show.seasons[state.theater.seasonIndex];
-    var episodes = getTrackEpisodes(season, state.theater.track);
+  function createCharacterCard(charObj, subText) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'char-card';
+    var img = (charObj.image && (charObj.image.large || charObj.image.medium)) || '';
+    var name = (charObj.name && charObj.name.full) || 'Unknown Character';
 
-    setEpisodeWatched(show.id, season.seasonNumber, state.theater.epNumber, true);
-    els.theaterWatchedBadge.classList.remove('hidden');
-    els.markWatchedBtn.textContent = '✓ Watched';
+    btn.innerHTML =
+      '<img src="' + escapeHtml(img) + '" alt="' + escapeHtml(name) + '" loading="lazy">' +
+      '<div class="char-info">' +
+        '<h3>' + escapeHtml(name) + '</h3>' +
+        '<p>' + escapeHtml(subText || 'View character wiki →') + '</p>' +
+      '</div>';
 
-    var idx = episodes.findIndex(function (e) { return e.ep === state.theater.epNumber; });
-    var nextEp = episodes[idx + 1];
-
-    if (nextEp && els.autoplayToggle.checked) {
-      startAutoplayCountdown(nextEp);
-    }
+    btn.addEventListener('click', function () {
+      openCharacterWiki(charObj.id, name);
+    });
+    return btn;
   }
 
-  function startAutoplayCountdown(nextEp) {
-    cancelAutoplayCountdown();
-    state.autoplaySeconds = 5;
-    els.autoplayBannerText.textContent = 'Up next: Episode ' + nextEp.ep + ' in ' + state.autoplaySeconds + 's...';
-    els.autoplayBanner.classList.remove('hidden');
-
-    state.autoplayTimer = setInterval(function () {
-      state.autoplaySeconds -= 1;
-      if (state.autoplaySeconds <= 0) {
-        cancelAutoplayCountdown();
-        playNextEpisodeImmediately();
-      } else {
-        els.autoplayBannerText.textContent = 'Up next: Episode ' + nextEp.ep + ' in ' + state.autoplaySeconds + 's...';
-      }
-    }, 1000);
+  /* -------------------------------------------------------
+     Navigation & View Switching
+     ------------------------------------------------------- */
+  function hideAllViews() {
+    els.homeView.classList.add('hidden');
+    els.wikiView.classList.add('hidden');
+    els.characterView.classList.add('hidden');
+    els.airingView.classList.add('hidden');
+    els.mylistView.classList.add('hidden');
+    els.creditsView.classList.add('hidden');
   }
 
-  function playNextEpisodeImmediately() {
-    if (!state.theater || state.theater.type !== 'show') return;
-    var show = getAllowedShows().find(function (s) { return s.id === state.theater.id; });
-    if (!show) return;
-    var season = show.seasons[state.theater.seasonIndex];
-    var episodes = getTrackEpisodes(season, state.theater.track);
-    var idx = episodes.findIndex(function (e) { return e.ep === state.theater.epNumber; });
-    var nextEp = episodes[idx + 1];
-    if (!nextEp) return;
-    state.theater.epNumber = nextEp.ep;
-    state.theater.notice = '';
-    renderTheater();
-    mountYouTubePlayer(nextEp.videoId, show.title + ' Episode ' + nextEp.ep, 0);
-  }
-
-  function switchTrack(targetTrack) {
-    if (!state.theater || state.theater.type !== 'show') return;
-    var show = getAllowedShows().find(function (s) { return s.id === state.theater.id; });
-    if (!show) return;
-    var season = show.seasons[state.theater.seasonIndex];
-    var targetEpisodes = getTrackEpisodes(season, targetTrack);
-    if (!targetEpisodes.length) return;
-
-    var sameEp = targetEpisodes.find(function (e) { return e.ep === state.theater.epNumber; });
-    if (sameEp) {
-      state.theater.track = targetTrack;
-      state.theater.notice = '';
-    } else {
-      var fallbackEp = targetEpisodes[0];
-      state.theater.notice =
-        'Episode ' + state.theater.epNumber + ' is not listed in ' +
-        (targetTrack === 'hi' ? 'Hindi Dub' : 'Sub / EN') +
-        ' yet — switched to Episode ' + fallbackEp.ep + '.';
-      state.theater.track = targetTrack;
-      state.theater.epNumber = fallbackEp.ep;
-    }
-    renderTheater();
-  }
-
-  function stepEpisode(delta) {
-    if (!state.theater || state.theater.type !== 'show') return;
-    var show = getAllowedShows().find(function (s) { return s.id === state.theater.id; });
-    if (!show) return;
-    var season = show.seasons[state.theater.seasonIndex];
-    var episodes = getTrackEpisodes(season, state.theater.track);
-    var idx = episodes.findIndex(function (e) { return e.ep === state.theater.epNumber; });
-    var next = episodes[idx + delta];
-    if (!next) return;
-    state.theater.epNumber = next.ep;
-    state.theater.notice = '';
-    renderTheater();
-  }
-
-  function toggleFullscreenShell() {
-    var shell = els.theaterPlayerShell;
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(function () {});
-      return;
-    }
-    if (shell.requestFullscreen) {
-      shell.requestFullscreen().catch(function () {
-        shell.classList.toggle('is-pseudo-fullscreen');
-      });
-    } else {
-      shell.classList.toggle('is-pseudo-fullscreen');
-    }
-  }
-
-  function switchTab(tab) {
-    destroyActivePlayer();
-    state.theater = null;
-    els.theaterSection.classList.add('hidden');
+  function switchTab(tab, clearHash) {
     state.activeTab = tab;
-    state.detail = null;
-    if (window.location.hash && tab !== 'credits') {
+    state.currentAnime = null;
+    state.currentCharacter = null;
+
+    if (clearHash !== false && window.location.hash) {
       history.replaceState(null, '', window.location.pathname + window.location.search);
     }
+
     els.navBtns.forEach(function (btn) {
       btn.classList.toggle('is-active', btn.dataset.tab === tab);
     });
-    renderBrowse();
+
+    hideEyeLoader();
+    els.appError.classList.add('hidden');
+    hideAllViews();
+
+    if (tab === 'home' || tab === 'browse') {
+      els.homeView.classList.remove('hidden');
+      if (tab === 'browse' && !hasActiveSearchOrFilters()) {
+        runEncyclopediaSearch(false);
+      } else if (tab === 'home' && !hasActiveSearchOrFilters()) {
+        els.resultsSection.classList.add('hidden');
+        els.charResultsSection.classList.add('hidden');
+        els.emptyState.classList.add('hidden');
+        els.homeRows.classList.remove('hidden');
+        els.heroBanner.classList.remove('hidden');
+      }
+    } else if (tab === 'airing') {
+      els.airingView.classList.remove('hidden');
+      loadAiringSchedule();
+    } else if (tab === 'mylist') {
+      els.mylistView.classList.remove('hidden');
+      renderMyList();
+    } else if (tab === 'credits') {
+      els.creditsView.classList.remove('hidden');
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function hasActiveSearchOrFilters() {
+    return Boolean(
+      state.searchQuery.trim() ||
+      state.genre !== 'all' ||
+      state.format !== 'all' ||
+      state.status !== 'all' ||
+      state.year !== 'all' ||
+      state.activeTab === 'browse'
+    );
+  }
+
+  /* -------------------------------------------------------
+     Search & Encyclopedia Browsing
+     ------------------------------------------------------- */
+  async function runEncyclopediaSearch(append) {
+    if (!append) {
+      state.page = 1;
+      els.resultsGrid.innerHTML = '';
+      els.charResultsGrid.innerHTML = '';
+    }
+
+    var qStr = state.searchQuery.trim();
+    var mode = state.searchType;
+
+    if (!append) {
+      els.homeRows.classList.add('hidden');
+      els.heroBanner.classList.add('hidden');
+      els.emptyState.classList.add('hidden');
+      els.resultsSection.classList.add('hidden');
+      els.charResultsSection.classList.add('hidden');
+      showEyeLoader(
+        qStr
+          ? 'Searching Akairis Encyclopedia for "' + qStr + '"...'
+          : 'Loading Anime Encyclopedia...'
+      );
+    }
+
+    try {
+      var needChars = (mode === 'both' || mode === 'characters') && !append && (qStr || mode === 'characters');
+      var needAnime = mode === 'both' || mode === 'anime';
+
+      var charPromise = needChars
+        ? queryAniList(
+            'query ($search: String) { Page(page: 1, perPage: 16) { characters(search: $search, sort: [FAVOURITES_DESC]) { id name { full native } image { large medium } favourites media(page: 1, perPage: 1, sort: [POPULARITY_DESC]) { nodes { id isAdult title { english romaji } } } } } }',
+            { search: qStr || undefined }
+          )
+        : Promise.resolve(null);
+
+      var animePromise = needAnime
+        ? queryAniList(
+            'query ($page: Int, $search: String, $genre: String, $format: MediaFormat, $status: MediaStatus, $year: Int, $sort: [MediaSort], $isAdult: Boolean) {' +
+              'Page(page: $page, perPage: 24) {' +
+                'pageInfo { hasNextPage total } ' +
+                'media(type: ANIME, search: $search, genre: $genre, format: $format, status: $status, seasonYear: $year, sort: $sort, isAdult: $isAdult) { ' + MEDIA_CARD_FIELDS + ' }' +
+              '}' +
+            '}',
+            {
+              page: state.page,
+              search: qStr || undefined,
+              genre: state.genre !== 'all' ? state.genre : undefined,
+              format: state.format !== 'all' ? state.format : undefined,
+              status: state.status !== 'all' ? state.status : undefined,
+              year: state.year !== 'all' ? Number(state.year) : undefined,
+              sort: [state.sort],
+              isAdult: state.showMature ? undefined : false
+            }
+          )
+        : Promise.resolve(null);
+
+      var results = await Promise.all([charPromise, animePromise]);
+      hideEyeLoader();
+
+      var charCount = 0;
+      if (results[0] && results[0].Page && results[0].Page.characters) {
+        var chars = results[0].Page.characters.filter(function (c) {
+          if (state.showMature) return true;
+          var topMedia = c.media && c.media.nodes && c.media.nodes[0];
+          return !topMedia || !topMedia.isAdult;
+        });
+        charCount = chars.length;
+        chars.forEach(function (c) {
+          var firstShow = c.media && c.media.nodes && c.media.nodes[0];
+          var sub = firstShow ? 'From: ' + getTitle(firstShow) : ('♥ ' + (c.favourites || 0) + ' Favorites');
+          els.charResultsGrid.appendChild(createCharacterCard(c, sub));
+        });
+        els.charResultsCount.textContent = String(charCount);
+        els.charResultsSection.classList.toggle('hidden', charCount === 0);
+      }
+
+      var animeCount = 0;
+      if (results[1] && results[1].Page) {
+        var pageData = results[1].Page;
+        var list = pageData.media || [];
+        fillAnimeGrid(els.resultsGrid, list, append);
+        animeCount = els.resultsGrid.children.length;
+        state.hasNextPage = Boolean(pageData.pageInfo && pageData.pageInfo.hasNextPage);
+        els.resultsTitle.textContent = qStr ? 'Anime Results for "' + qStr + '"' : 'Anime Encyclopedia';
+        els.resultsCount.textContent = String(animeCount);
+        els.resultsSection.classList.toggle('hidden', animeCount === 0);
+        els.loadMoreBtn.classList.toggle('hidden', !state.hasNextPage);
+      }
+
+      els.emptyState.classList.toggle('hidden', charCount > 0 || animeCount > 0);
+    } catch (err) {
+      hideEyeLoader();
+      els.appErrorMsg.textContent = err.message || 'Search failed. Please try again.';
+      els.appError.classList.remove('hidden');
+    }
+  }
+
+  async function openRandomAnime() {
+    hideAllViews();
+    showEyeLoader('Picking a random anime from the encyclopedia...');
+    try {
+      var randPage = Math.floor(Math.random() * 140) + 1;
+      var data = await queryAniList(
+        'query ($page: Int, $isAdult: Boolean) { Page(page: $page, perPage: 10) { media(type: ANIME, sort: [POPULARITY_DESC], isAdult: $isAdult) { id title { english romaji } } } }',
+        { page: randPage, isAdult: state.showMature ? undefined : false }
+      );
+      var list = (data.Page && data.Page.media) || [];
+      if (!list.length) throw new Error('Could not pick a random anime right now.');
+      var pick = list[Math.floor(Math.random() * list.length)];
+      openAnimeWiki(pick.id, getTitle(pick));
+    } catch (err) {
+      hideEyeLoader();
+      els.appErrorMsg.textContent = err.message;
+      els.appError.classList.remove('hidden');
+    }
+  }
+
+  /* -------------------------------------------------------
+     Anime Wikipedia Page (#anime/ID)
+     ------------------------------------------------------- */
+  async function openAnimeWiki(id, labelHint, updateHash) {
+    if (updateHash !== false) {
+      var h = '#anime/' + id;
+      if (window.location.hash !== h) window.location.hash = h;
+    }
+
+    hideAllViews();
+    els.appError.classList.add('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (state.cache.anime[id]) {
+      renderAnimeWiki(state.cache.anime[id]);
+      return;
+    }
+
+    showEyeLoader('Loading ' + (labelHint ? '"' + labelHint + '"' : 'anime') + ' wiki entry...');
+
+    var q =
+      'query ($id: Int) {' +
+        'Media(id: $id, type: ANIME) {' +
+          'id isAdult title { romaji english native } format status ' +
+          'description(asHtml: false) season seasonYear episodes duration ' +
+          'averageScore popularity source genres ' +
+          'coverImage { extraLarge large } bannerImage ' +
+          'nextAiringEpisode { episode timeUntilAiring } ' +
+          'tags { name rank isMediaSpoiler } ' +
+          'studios(isMain: true) { nodes { name } } ' +
+          'characters(sort: [ROLE, FAVOURITES_DESC], perPage: 18) {' +
+            'edges {' +
+              'role ' +
+              'node { id name { full native } image { large medium } } ' +
+              'voiceActors(language: JAPANESE, sort: [RELEVANCE, FAVOURITES_DESC]) { id name { full } image { medium } }' +
+            '}' +
+          '} ' +
+          'relations {' +
+            'edges {' +
+              'relationType ' +
+              'node { id type format isAdult title { romaji english } coverImage { large } averageScore seasonYear }' +
+            '}' +
+          '} ' +
+          'recommendations(sort: [RATING_DESC], perPage: 8) {' +
+            'nodes {' +
+              'mediaRecommendation { id type format isAdult title { romaji english } coverImage { large } averageScore seasonYear }' +
+            '}' +
+          '}' +
+        '}' +
+      '}';
+
+    try {
+      var data = await queryAniList(q, { id: Number(id) });
+      hideEyeLoader();
+      if (!data || !data.Media) throw new Error('Anime entry not found.');
+      if (!state.showMature && data.Media.isAdult) {
+        throw new Error('This 18+ title is hidden. Enable "Include 18+" in filters to view it.');
+      }
+      state.cache.anime[id] = data.Media;
+      renderAnimeWiki(data.Media);
+    } catch (err) {
+      hideEyeLoader();
+      els.appErrorMsg.textContent = err.message || 'Could not load anime details.';
+      els.appError.classList.remove('hidden');
+    }
+  }
+
+  function renderAnimeWiki(m) {
+    state.currentAnime = m;
+    state.currentCharacter = null;
+    hideAllViews();
+    els.wikiView.classList.remove('hidden');
+
+    var cover = (m.coverImage && (m.coverImage.extraLarge || m.coverImage.large)) || '';
+    els.wikiBannerImg.src = m.bannerImage || cover;
+    els.wikiCover.src = cover;
+
+    els.wikiFormatBadge.textContent = m.format || 'ANIME';
+    els.wikiStatusBadge.textContent = formatStatus(m.status);
+    els.wikiScoreBadge.textContent = m.averageScore ? '★ ' + m.averageScore + '%' : 'Unrated';
+
+    els.wikiTitle.textContent = getTitle(m);
+    var subNames = [];
+    if (m.title.romaji && m.title.romaji !== getTitle(m)) subNames.push(m.title.romaji);
+    if (m.title.native) subNames.push(m.title.native);
+    els.wikiNativeTitle.textContent = subNames.join(' · ');
+
+    if (m.nextAiringEpisode) {
+      els.wikiAiringCountdown.textContent =
+        'Episode ' + m.nextAiringEpisode.episode + ' airing in ' + formatCountdown(m.nextAiringEpisode.timeUntilAiring);
+      els.wikiAiringCountdown.classList.remove('hidden');
+    } else {
+      els.wikiAiringCountdown.classList.add('hidden');
+    }
+
+    els.wikiGenres.innerHTML = (m.genres || []).map(function (g) {
+      return '<span class="chip">' + escapeHtml(g) + '</span>';
+    }).join('');
+
+    var studios = (m.studios && m.studios.nodes || []).map(function (s) { return s.name; }).join(', ') || 'Unknown';
+    var rows = [
+      ['Format', m.format || '—'],
+      ['Episodes', m.episodes ? String(m.episodes) : 'Ongoing / TBA'],
+      ['Duration', m.duration ? m.duration + ' min' : '—'],
+      ['Season', [m.season, m.seasonYear].filter(Boolean).join(' ') || 'TBA'],
+      ['Studio', studios],
+      ['Source', m.source ? m.source.replace(/_/g, ' ') : '—'],
+      ['Popularity', m.popularity ? '#' + m.popularity.toLocaleString() + ' members' : '—']
+    ];
+    els.wikiInfobox.innerHTML = rows.map(function (r) {
+      return '<div class="infobox-row"><span class="infobox-label">' + escapeHtml(r[0]) + '</span><span class="infobox-val">' + escapeHtml(r[1]) + '</span></div>';
+    }).join('');
+
+    renderWikiRichText(els.wikiSynopsis, m.description, 'No synopsis listed.');
+
+    els.wikiTags.innerHTML = (m.tags || []).filter(function (t) { return !t.isMediaSpoiler; }).slice(0, 14).map(function (t) {
+      return '<span class="chip">' + escapeHtml(t.name) + ' (' + t.rank + '%)</span>';
+    }).join('');
+
+    els.wikiShareStatus.classList.add('hidden');
+    syncTrackerUI();
+
+    /* Characters (clickable -> Character Wiki!) */
+    var chars = (m.characters && m.characters.edges) || [];
+    els.wikiCharactersGrid.innerHTML = '';
+    chars.forEach(function (edge) {
+      if (!edge.node) return;
+      var va = edge.voiceActors && edge.voiceActors[0];
+      var sub = (edge.role || 'CHARACTER') + (va ? ' · VA: ' + va.name.full : '');
+      els.wikiCharactersGrid.appendChild(createCharacterCard(edge.node, sub));
+    });
+    els.wikiCharactersSection.classList.toggle('hidden', chars.length === 0);
+
+    /* Relations */
+    var rels = ((m.relations && m.relations.edges) || []).filter(function (e) {
+      return e.node && e.node.type === 'ANIME' && (state.showMature || !e.node.isAdult);
+    });
+    els.wikiRelationsGrid.innerHTML = '';
+    rels.forEach(function (e) {
+      var relLabel = (e.relationType || 'RELATED').replace(/_/g, ' ');
+      els.wikiRelationsGrid.appendChild(createAnimeCard(e.node, relLabel));
+    });
+    els.wikiRelationsSection.classList.toggle('hidden', rels.length === 0);
+
+    /* Similar Anime */
+    var recs = ((m.recommendations && m.recommendations.nodes) || []).map(function (n) {
+      return n.mediaRecommendation;
+    }).filter(function (rec) {
+      return rec && rec.type === 'ANIME' && (state.showMature || !rec.isAdult);
+    });
+    els.wikiRecsGrid.innerHTML = '';
+    recs.forEach(function (rec) {
+      els.wikiRecsGrid.appendChild(createAnimeCard(rec));
+    });
+    els.wikiRecsSection.classList.toggle('hidden', recs.length === 0);
+  }
+
+  /* -------------------------------------------------------
+     Full Character Wikipedia Page (#character/ID)
+     ------------------------------------------------------- */
+  async function openCharacterWiki(id, labelHint, updateHash) {
+    if (updateHash !== false) {
+      var h = '#character/' + id;
+      if (window.location.hash !== h) window.location.hash = h;
+    }
+
+    hideAllViews();
+    els.appError.classList.add('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (state.cache.character[id]) {
+      renderCharacterWiki(state.cache.character[id]);
+      return;
+    }
+
+    showEyeLoader('Loading ' + (labelHint ? '"' + labelHint + '"' : 'character') + ' biography & cast...');
+
+    var q =
+      'query ($id: Int) {' +
+        'Character(id: $id) {' +
+          'id name { full native alternative } ' +
+          'image { large } description(asHtml: false) ' +
+          'gender dateOfBirth { year month day } age bloodType favourites ' +
+          'media(sort: [POPULARITY_DESC], type: ANIME, perPage: 24) {' +
+            'edges {' +
+              'characterRole ' +
+              'voiceActors(sort: [LANGUAGE, FAVOURITES_DESC]) { id name { full } image { medium } languageV2 } ' +
+              'node { id type format isAdult episodes seasonYear averageScore title { romaji english } coverImage { large } }' +
+            '}' +
+          '}' +
+        '}' +
+      '}';
+
+    try {
+      var data = await queryAniList(q, { id: Number(id) });
+      hideEyeLoader();
+      if (!data || !data.Character) throw new Error('Character wiki entry not found.');
+      state.cache.character[id] = data.Character;
+      renderCharacterWiki(data.Character);
+    } catch (err) {
+      hideEyeLoader();
+      els.appErrorMsg.textContent = err.message || 'Could not load character profile.';
+      els.appError.classList.remove('hidden');
+    }
+  }
+
+  function renderCharacterWiki(c) {
+    state.currentCharacter = c;
+    state.currentAnime = null;
+    hideAllViews();
+    els.characterView.classList.remove('hidden');
+
+    els.charCover.src = (c.image && c.image.large) || '';
+    els.charFavBadge.textContent = '♥ ' + (c.favourites || 0).toLocaleString() + ' Favorites';
+    els.charTitle.textContent = (c.name && c.name.full) || 'Character';
+    els.charNativeTitle.textContent = (c.name && c.name.native) || '';
+
+    var alts = (c.name && c.name.alternative) || [];
+    if (alts.length) {
+      els.charAltNames.textContent = 'Also known as: ' + alts.join(', ');
+      els.charAltNames.classList.remove('hidden');
+    } else {
+      els.charAltNames.classList.add('hidden');
+    }
+
+    var dob = c.dateOfBirth;
+    var dobText = '—';
+    if (dob && (dob.month || dob.day || dob.year)) {
+      dobText = [dob.month, dob.day, dob.year].filter(Boolean).join('/');
+    }
+
+    var infoRows = [
+      ['Age', c.age || '—'],
+      ['Gender', c.gender || '—'],
+      ['Birthday', dobText],
+      ['Blood Type', c.bloodType || '—']
+    ];
+    els.charInfobox.innerHTML = infoRows.map(function (r) {
+      return '<div class="infobox-row"><span class="infobox-label">' + escapeHtml(r[0]) + '</span><span class="infobox-val">' + escapeHtml(r[1]) + '</span></div>';
+    }).join('');
+
+    renderWikiRichText(els.charBio, c.description, 'No character biography recorded yet.');
+    els.charShareStatus.classList.add('hidden');
+
+    /* Deduplicate Voice Actors across anime appearances */
+    var seenVa = {};
+    var vaList = [];
+    var mediaEdges = (c.media && c.media.edges) || [];
+
+    mediaEdges.forEach(function (edge) {
+      (edge.voiceActors || []).forEach(function (va) {
+        if (!va || seenVa[va.id]) return;
+        seenVa[va.id] = true;
+        vaList.push(va);
+      });
+    });
+
+    els.charVaGrid.innerHTML = '';
+    vaList.slice(0, 8).forEach(function (va) {
+      var card = document.createElement('div');
+      card.className = 'char-card is-static';
+      card.innerHTML =
+        '<img src="' + escapeHtml((va.image && va.image.medium) || '') + '" alt="' + escapeHtml(va.name.full) + '" loading="lazy">' +
+        '<div class="char-info">' +
+          '<h3>' + escapeHtml(va.name.full) + '</h3>' +
+          '<p>' + escapeHtml(va.languageV2 || 'Voice Actor') + '</p>' +
+        '</div>';
+      els.charVaGrid.appendChild(card);
+    });
+    els.charVaSection.classList.toggle('hidden', vaList.length === 0);
+
+    /* Anime Appearances */
+    var visibleAppearances = mediaEdges.filter(function (edge) {
+      return edge.node && (state.showMature || !edge.node.isAdult);
+    });
+    els.charMediaGrid.innerHTML = '';
+    visibleAppearances.forEach(function (edge) {
+      els.charMediaGrid.appendChild(createAnimeCard(edge.node, edge.characterRole || 'ANIME'));
+    });
+    els.charMediaSection.classList.toggle('hidden', visibleAppearances.length === 0);
+  }
+
+  /* -------------------------------------------------------
+     Personal Anime Tracker (localStorage)
+     ------------------------------------------------------- */
+  function syncTrackerUI() {
+    var m = state.currentAnime;
+    if (!m) return;
+    var entry = state.tracker[String(m.id)] || { status: 'none', watchedEps: 0, score: 0, notes: '' };
+    els.trackerStatus.value = entry.status || 'none';
+    els.trackerScore.value = String(entry.score || 0);
+    els.trackerNotes.value = entry.notes || '';
+    els.trackerEpCount.textContent = (entry.watchedEps || 0) + ' / ' + (m.episodes || '?') + ' Ep';
+  }
+
+  function saveTrackerEntry(updates) {
+    var m = state.currentAnime;
+    if (!m) return;
+    var key = String(m.id);
+    var prev = state.tracker[key] || {
+      id: m.id,
+      title: getTitle(m),
+      coverImage: (m.coverImage && (m.coverImage.large || m.coverImage.extraLarge)) || '',
+      format: m.format || 'ANIME',
+      episodes: m.episodes || null,
+      averageScore: m.averageScore || null,
+      seasonYear: m.seasonYear || null,
+      status: 'watching',
+      watchedEps: 0,
+      score: 0,
+      notes: ''
+    };
+
+    var next = Object.assign({}, prev, updates, { updatedAt: Date.now() });
+
+    if (next.status === 'none' && !next.watchedEps && !next.score && !next.notes.trim()) {
+      delete state.tracker[key];
+    } else {
+      if (next.status === 'none') next.status = 'watching';
+      state.tracker[key] = next;
+    }
+
+    writeStorage(STORAGE_TRACKER, state.tracker);
+    syncTrackerUI();
+    els.trackerSaveStatus.textContent = 'Saved ✓';
+    setTimeout(function () {
+      els.trackerSaveStatus.textContent = 'Saved on this device';
+    }, 1400);
+  }
+
+  function renderMyList() {
+    var allEntries = Object.keys(state.tracker).map(function (k) {
+      return state.tracker[k];
+    }).sort(function (a, b) {
+      return (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
+
+    var filtered = allEntries.filter(function (item) {
+      return state.myListFilter === 'all' || item.status === state.myListFilter;
+    });
+
+    els.mylistGrid.innerHTML = '';
+    els.mylistEmpty.classList.toggle('hidden', filtered.length > 0);
+
+    filtered.forEach(function (item) {
+      var mediaStub = {
+        id: item.id,
+        title: { english: item.title, romaji: item.title },
+        coverImage: { large: item.coverImage },
+        format: item.format,
+        episodes: item.episodes,
+        averageScore: item.averageScore,
+        seasonYear: item.seasonYear
+      };
+      var epText = (item.watchedEps || 0) + '/' + (item.episodes || '?') + ' Ep';
+      var card = createAnimeCard(mediaStub, epText);
+      els.mylistGrid.appendChild(card);
+    });
+  }
+
+  /* -------------------------------------------------------
+     Airing Schedule View
+     ------------------------------------------------------- */
+  async function loadAiringSchedule() {
+    if (state.airingLoaded && state.airingList.length) {
+      renderAiringSchedule();
+      return;
+    }
+
+    showEyeLoader('Loading upcoming anime airing schedule...');
+    try {
+      var data = await queryAniList(
+        'query { Page(page: 1, perPage: 32) { airingSchedules(notYetAired: true, sort: [TIME]) { episode timeUntilAiring media { id isAdult format title { romaji english } coverImage { large } } } } }',
+        {}
+      );
+      hideEyeLoader();
+      state.airingList = (data.Page && data.Page.airingSchedules) || [];
+      state.airingLoaded = true;
+      renderAiringSchedule();
+    } catch (err) {
+      hideEyeLoader();
+      els.appErrorMsg.textContent = err.message || 'Could not load airing schedule.';
+      els.appError.classList.remove('hidden');
+    }
+  }
+
+  function renderAiringSchedule() {
+    els.airingGrid.innerHTML = '';
+    state.airingList.forEach(function (item) {
+      if (!item.media || (!state.showMature && item.media.isAdult)) return;
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'airing-card';
+      var name = getTitle(item.media);
+      btn.innerHTML =
+        '<img src="' + escapeHtml((item.media.coverImage && item.media.coverImage.large) || '') + '" alt="' + escapeHtml(name) + '" loading="lazy">' +
+        '<div class="airing-info">' +
+          '<h3>' + escapeHtml(name) + '</h3>' +
+          '<p>Episode ' + escapeHtml(item.episode) + ' · in ' + escapeHtml(formatCountdown(item.timeUntilAiring)) + '</p>' +
+        '</div>';
+      btn.addEventListener('click', function () {
+        openAnimeWiki(item.media.id, name);
+      });
+      els.airingGrid.appendChild(btn);
+    });
+  }
+
+  /* -------------------------------------------------------
+     Hash Routing (#anime/ID and #character/ID)
+     ------------------------------------------------------- */
+  function handleRouteFromHash() {
+    var hash = window.location.hash || '';
+    var animeMatch = hash.match(/^#anime\/(\d+)$/);
+    if (animeMatch) {
+      openAnimeWiki(Number(animeMatch[1]), '', false);
+      return;
+    }
+    var charMatch = hash.match(/^#character\/(\d+)$/);
+    if (charMatch) {
+      openCharacterWiki(Number(charMatch[1]), '', false);
+      return;
+    }
+    if (state.currentAnime || state.currentCharacter) {
+      switchTab(state.activeTab, false);
+    }
+  }
+
+  /* -------------------------------------------------------
+     Bind Events & Boot App
+     ------------------------------------------------------- */
   function bindEvents() {
     if (els.skipIntroBtn) els.skipIntroBtn.addEventListener('click', dismissIntro);
     if (els.replayIntroBtn) els.replayIntroBtn.addEventListener('click', replayIntro);
@@ -1543,217 +1164,182 @@
 
     els.brandHomeLink.addEventListener('click', function (e) {
       e.preventDefault();
-      switchTab('all');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      state.searchQuery = '';
+      els.searchInput.value = '';
+      switchTab('home');
     });
 
     els.footerCreditsBtn.addEventListener('click', function () {
       switchTab('credits');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    els.retryLoadBtn.addEventListener('click', initData);
-    els.theaterBackBtn.addEventListener('click', closeTheater);
+    els.retryLoadBtn.addEventListener('click', bootApp);
 
-    els.theaterDetailBtn.addEventListener('click', function () {
-      if (!state.theater) return;
-      openDetailView(state.theater.type, state.theater.id);
+    els.wikiBackBtn.addEventListener('click', function () {
+      switchTab(state.activeTab);
     });
-
-    els.theaterBookmarkBtn.addEventListener('click', function () {
-      if (!state.theater) return;
-      toggleBookmark(state.theater.type, state.theater.id);
-    });
-
-    els.prevEpBtn.addEventListener('click', function () { stepEpisode(-1); });
-    els.nextEpBtn.addEventListener('click', function () { stepEpisode(1); });
-
-    els.markWatchedBtn.addEventListener('click', function () {
-      if (!state.theater || state.theater.type !== 'show') return;
-      var show = getAllowedShows().find(function (s) { return s.id === state.theater.id; });
-      if (!show) return;
-      var season = show.seasons[state.theater.seasonIndex];
-      var currently = isEpisodeWatched(show.id, season.seasonNumber, state.theater.epNumber);
-      setEpisodeWatched(show.id, season.seasonNumber, state.theater.epNumber, !currently);
-      renderTheater();
-    });
-
-    els.autoplayNowBtn.addEventListener('click', function () {
-      cancelAutoplayCountdown();
-      playNextEpisodeImmediately();
-    });
-    els.autoplayCancelBtn.addEventListener('click', cancelAutoplayCountdown);
-
-    els.trackSubBtn.addEventListener('click', function () { switchTrack('sub'); });
-    els.trackHiBtn.addEventListener('click', function () { switchTrack('hi'); });
-
-    els.seasonSelect.addEventListener('change', function () {
-      if (!state.theater || state.theater.type !== 'show') return;
-      var newIdx = Number(els.seasonSelect.value) || 0;
-      var show = getAllowedShows().find(function (s) { return s.id === state.theater.id; });
-      if (!show || !show.seasons[newIdx]) return;
-      state.theater.seasonIndex = newIdx;
-      state.theater.track = chooseAvailableTrack(show.seasons[newIdx], state.theater.track);
-      var eps = getTrackEpisodes(show.seasons[newIdx], state.theater.track);
-      state.theater.epNumber = eps[0] ? eps[0].ep : 1;
-      state.theater.notice = '';
-      renderTheater();
-    });
-
-    els.ccPlayBtn.addEventListener('click', function () {
-      var p = state.ytPlayerInstance;
-      if (!p || typeof p.getPlayerState !== 'function') return;
-      if (p.getPlayerState() === 1) p.pauseVideo();
-      else p.playVideo();
-    });
-
-    els.ccSeek.addEventListener('input', function () {
-      state.isSeeking = true;
-    });
-    els.ccSeek.addEventListener('change', function () {
-      state.isSeeking = false;
-      var p = state.ytPlayerInstance;
-      if (!p || typeof p.getDuration !== 'function') return;
-      var dur = p.getDuration() || 0;
-      if (dur > 0) {
-        p.seekTo((Number(els.ccSeek.value) / 1000) * dur, true);
-      }
-    });
-
-    els.ccMuteBtn.addEventListener('click', function () {
-      var p = state.ytPlayerInstance;
-      if (!p || typeof p.isMuted !== 'function') return;
-      if (p.isMuted()) {
-        p.unMute();
-        els.ccMuteBtn.textContent = '🔊';
+    els.charBackBtn.addEventListener('click', function () {
+      if (window.history.length > 1) {
+        window.history.back();
       } else {
-        p.mute();
-        els.ccMuteBtn.textContent = '🔇';
+        switchTab(state.activeTab);
       }
     });
 
-    els.ccVolume.addEventListener('input', function () {
-      var p = state.ytPlayerInstance;
-      var vol = Number(els.ccVolume.value);
-      if (!p || typeof p.setVolume !== 'function') return;
-      p.setVolume(vol);
-      if (vol === 0) {
-        p.mute();
-        els.ccMuteBtn.textContent = '🔇';
-      } else {
-        p.unMute();
-        els.ccMuteBtn.textContent = '🔊';
-      }
-    });
-
-    els.ccSpeed.addEventListener('change', function () {
-      var p = state.ytPlayerInstance;
-      if (!p || typeof p.setPlaybackRate !== 'function') return;
-      p.setPlaybackRate(Number(els.ccSpeed.value) || 1);
-    });
-
-    els.ccFullscreenBtn.addEventListener('click', toggleFullscreenShell);
-
-    els.detailBackBtn.addEventListener('click', function () {
-      closeDetailView(true);
-    });
-    els.detailBookmarkBtn.addEventListener('click', function () {
-      if (!state.detail) return;
-      toggleBookmark(state.detail.type, state.detail.id);
-    });
-    els.detailShareBtn.addEventListener('click', function () {
+    function copyShare(statusEl) {
       var url = window.location.href;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(function () {
-          els.detailShareStatus.textContent = 'Share link copied!';
-          els.detailShareStatus.classList.remove('hidden');
-        }).catch(function () {
-          window.prompt('Copy this share link:', url);
-        });
+          statusEl.classList.remove('hidden');
+          setTimeout(function () { statusEl.classList.add('hidden'); }, 1800);
+        }).catch(function () { window.prompt('Copy this wiki link:', url); });
       } else {
-        window.prompt('Copy this share link:', url);
+        window.prompt('Copy this wiki link:', url);
+      }
+    }
+
+    els.wikiShareBtn.addEventListener('click', function () { copyShare(els.wikiShareStatus); });
+    els.charShareBtn.addEventListener('click', function () { copyShare(els.charShareStatus); });
+
+    /* Tracker Controls */
+    els.trackerStatus.addEventListener('change', function () {
+      var val = els.trackerStatus.value;
+      var m = state.currentAnime;
+      var updates = { status: val };
+      if (val === 'completed' && m && m.episodes) {
+        updates.watchedEps = m.episodes;
+      }
+      saveTrackerEntry(updates);
+    });
+
+    els.trackerEpMinus.addEventListener('click', function () {
+      if (!state.currentAnime) return;
+      var cur = (state.tracker[String(state.currentAnime.id)] || {}).watchedEps || 0;
+      saveTrackerEntry({ watchedEps: Math.max(0, cur - 1) });
+    });
+
+    els.trackerEpPlus.addEventListener('click', function () {
+      if (!state.currentAnime) return;
+      var m = state.currentAnime;
+      var cur = (state.tracker[String(m.id)] || {}).watchedEps || 0;
+      var nextEp = m.episodes ? Math.min(m.episodes, cur + 1) : cur + 1;
+      var updates = { watchedEps: nextEp };
+      if (m.episodes && nextEp >= m.episodes) updates.status = 'completed';
+      saveTrackerEntry(updates);
+    });
+
+    els.trackerScore.addEventListener('change', function () {
+      saveTrackerEntry({ score: Number(els.trackerScore.value) || 0 });
+    });
+
+    els.trackerNotes.addEventListener('change', function () {
+      saveTrackerEntry({ notes: els.trackerNotes.value });
+    });
+
+    /* Search & Filter Listeners */
+    els.searchForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      state.searchQuery = els.searchInput.value;
+      state.searchType = els.searchType.value;
+      runEncyclopediaSearch(false);
+    });
+
+    els.searchType.addEventListener('change', function () {
+      state.searchType = els.searchType.value;
+      if (hasActiveSearchOrFilters() || state.searchType === 'characters') {
+        runEncyclopediaSearch(false);
       }
     });
-    els.detailSeasonSelect.addEventListener('change', function () {
-      if (!state.detail) return;
-      state.detail.seasonIndex = Number(els.detailSeasonSelect.value) || 0;
-      renderDetailView();
-    });
-    els.detailTrackSub.addEventListener('click', function () {
-      if (!state.detail) return;
-      state.detail.track = 'sub';
-      renderDetailView();
-    });
-    els.detailTrackHi.addEventListener('click', function () {
-      if (!state.detail) return;
-      state.detail.track = 'hi';
-      renderDetailView();
+
+    [els.genreFilter, els.formatFilter, els.statusFilter, els.yearFilter, els.sortFilter].forEach(function (sel) {
+      sel.addEventListener('change', function () {
+        state.genre = els.genreFilter.value;
+        state.format = els.formatFilter.value;
+        state.status = els.statusFilter.value;
+        state.year = els.yearFilter.value;
+        state.sort = els.sortFilter.value;
+        if (hasActiveSearchOrFilters()) {
+          runEncyclopediaSearch(false);
+        } else {
+          els.resultsSection.classList.add('hidden');
+          els.homeRows.classList.remove('hidden');
+          els.heroBanner.classList.remove('hidden');
+        }
+      });
     });
 
-    els.searchInput.addEventListener('input', function () {
-      state.search = els.searchInput.value;
-      renderBrowse();
-    });
-    els.genreFilter.addEventListener('change', function () {
-      state.genre = els.genreFilter.value;
-      renderBrowse();
-    });
-    els.languageFilter.addEventListener('change', function () {
-      state.language = els.languageFilter.value;
-      renderBrowse();
-    });
-    els.tagFilter.addEventListener('change', function () {
-      state.tag = els.tagFilter.value;
-      renderBrowse();
-    });
-    els.sortFilter.addEventListener('change', function () {
-      state.sort = els.sortFilter.value;
-      renderBrowse();
-    });
     els.matureToggle.addEventListener('change', function () {
       state.showMature = els.matureToggle.checked;
-      renderContinueWatching();
-      renderBrowse();
+      loadHomeData().then(function () {
+        if (hasActiveSearchOrFilters()) runEncyclopediaSearch(false);
+        if (state.activeTab === 'airing') renderAiringSchedule();
+      }).catch(function () {});
     });
 
-    els.randomPickBtn.addEventListener('click', function () {
-      var pool = getAllowedMovies().map(function (m) { return { type: 'movie', item: m }; })
-        .concat(getAllowedShows().map(function (s) { return { type: 'show', item: s }; }))
-        .filter(function (e) { return state.showMature || !e.item.mature; });
-      if (!pool.length) return;
-      var pick = pool[Math.floor(Math.random() * pool.length)];
-      if (pick.type === 'movie') openMovieInTheater(pick.item.id);
-      else openShowInTheater(pick.item.id);
+    els.loadMoreBtn.addEventListener('click', function () {
+      state.page += 1;
+      runEncyclopediaSearch(true);
     });
+
+    els.randomAnimeBtn.addEventListener('click', openRandomAnime);
 
     els.resetFiltersBtn.addEventListener('click', function () {
-      state.search = '';
+      state.searchQuery = '';
+      state.searchType = 'both';
       state.genre = 'all';
-      state.language = 'all';
-      state.tag = 'all';
+      state.format = 'all';
+      state.status = 'all';
+      state.year = 'all';
+      state.sort = 'POPULARITY_DESC';
       els.searchInput.value = '';
+      els.searchType.value = 'both';
       els.genreFilter.value = 'all';
-      els.languageFilter.value = 'all';
-      els.tagFilter.value = 'all';
-      renderBrowse();
+      els.formatFilter.value = 'all';
+      els.statusFilter.value = 'all';
+      els.yearFilter.value = 'all';
+      els.sortFilter.value = 'POPULARITY_DESC';
+      switchTab('home');
     });
 
-    els.clearHistoryBtn.addEventListener('click', function () {
-      state.history = [];
-      writeStorage(STORAGE_HISTORY, []);
-      renderContinueWatching();
-      renderBrowse();
+    els.mylistFilterBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        state.myListFilter = btn.dataset.listFilter;
+        els.mylistFilterBtns.forEach(function (b) {
+          b.classList.toggle('is-active', b.dataset.listFilter === state.myListFilter);
+        });
+        renderMyList();
+      });
+    });
+
+    els.mylistClearBtn.addEventListener('click', function () {
+      if (!window.confirm('Clear your entire personal anime list on this device?')) return;
+      state.tracker = {};
+      writeStorage(STORAGE_TRACKER, {});
+      renderMyList();
     });
 
     window.addEventListener('hashchange', handleRouteFromHash);
   }
 
-  state.bookmarks = readStorage(STORAGE_BOOKMARKS, []);
-  state.history = readStorage(STORAGE_HISTORY, []);
-  state.positions = readStorage(STORAGE_POSITIONS, {});
-  state.watched = readStorage(STORAGE_WATCHED, {});
+  async function bootApp() {
+    els.appError.classList.add('hidden');
+    startIntro();
+    await loadConfig();
 
-  setupIntro();
+    try {
+      await loadHomeData();
+      els.homeView.classList.remove('hidden');
+      finishIntroSmoothly();
+      handleRouteFromHash();
+    } catch (err) {
+      dismissIntro();
+      els.appErrorMsg.textContent = err.message || 'Unable to load the Akairis encyclopedia right now.';
+      els.appError.classList.remove('hidden');
+    }
+  }
+
+  state.tracker = readStorage(STORAGE_TRACKER, {});
+  populateYearFilter();
   bindEvents();
-  initData();
+  bootApp();
 })();
