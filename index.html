@@ -4,7 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Akairis — Official Cinema &amp; Anime Showcase</title>
-  <meta name="description" content="Akairis is a curated, mobile-first showcase of official embeddable movies and anime series on YouTube.">
+  <meta name="description" content="Akairis is a curated, mobile-first showcase of official Hindi &amp; English movies and anime series.">
+  <meta name="theme-color" content="#070709">
+  <meta property="og:title" content="Akairis — Official Cinema &amp; Anime Showcase">
+  <meta property="og:description" content="Watch curated official movies and anime episodes in a dark crimson theater experience.">
+  <meta property="og:type" content="website">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23070709' stroke='%23e11d48' stroke-width='4'/%3E%3Ccircle cx='32' cy='32' r='16' fill='%23c91c28'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%23070709'/%3E%3C/svg%3E">
   <script>
     (function () {
       try {
@@ -33,13 +39,9 @@
             <stop offset="100%" stop-color="#4d060e"/>
           </radialGradient>
         </defs>
-        <!-- Outer eye outline -->
         <path class="eye-outline" d="M16 80 C55 20, 205 20, 244 80 C205 140, 55 140, 16 80 Z" fill="#0d090b" stroke="#e11d48" stroke-width="3"/>
-        <!-- Crimson iris -->
         <circle cx="130" cy="80" r="46" fill="url(#irisGrad)" stroke="#ff4d67" stroke-width="1.5"/>
-        <!-- Inner ring -->
         <circle cx="130" cy="80" r="30" fill="none" stroke="#180407" stroke-width="2" stroke-opacity="0.7"/>
-        <!-- Three spinning tomoe-style marks -->
         <g class="tomoe-ring">
           <g transform="translate(130, 50)">
             <circle cx="0" cy="0" r="6" fill="#090608"/>
@@ -54,7 +56,6 @@
             <path d="M2 -5 C10 -4, 11 4, 4 7 C7 3, 6 -1, 1 -2 Z" fill="#090608"/>
           </g>
         </g>
-        <!-- Center pupil -->
         <circle cx="130" cy="80" r="13" fill="#070506"/>
       </svg>
       <p class="intro-wordmark">AKAIRIS</p>
@@ -82,44 +83,95 @@
         <button class="nav-btn" type="button" data-tab="movies">Movies</button>
         <button class="nav-btn" type="button" data-tab="anime">Anime</button>
         <button class="nav-btn" type="button" data-tab="watchlist">Watchlist</button>
-        <button class="nav-btn" type="button" data-tab="about">About</button>
+        <button class="nav-btn" type="button" data-tab="credits">Credits</button>
       </nav>
     </div>
   </header>
 
   <main id="top" class="container main-content">
-    <!-- Friendly error state (shown only if files fail to load or have a mistake) -->
+    <!-- Friendly error state -->
     <section id="app-error" class="status-card is-error hidden" role="alert">
       <h2>Unable to load catalog</h2>
       <p id="app-error-msg">Something went wrong while loading the video list.</p>
       <button id="retry-load-btn" class="btn btn-primary" type="button">Try Again</button>
     </section>
 
-    <!-- Theater Video Area (1 active player at a time, 16:9 responsive) -->
+    <!-- Loading Skeletons -->
+    <section id="loading-state" class="loading-skeletons" aria-label="Loading content">
+      <div class="skeleton-hero"></div>
+      <div class="skeleton-grid">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
+    </section>
+
+    <!-- Theater Video Area (1 active player at a time, Option A custom controls below) -->
     <section id="theater-section" class="theater-section hidden" aria-label="Video player">
       <div class="theater-top">
         <div>
           <div class="theater-badges">
             <span id="theater-type-badge" class="badge badge-crimson">Movie</span>
-            <span id="theater-channel-badge" class="badge">Official Channel</span>
+            <span id="theater-watched-badge" class="badge hidden">✓ Watched</span>
           </div>
           <h1 id="theater-title" class="theater-title">Title</h1>
           <p id="theater-subtitle" class="theater-subtitle"></p>
         </div>
         <div class="theater-top-actions">
+          <button id="theater-detail-btn" class="btn btn-ghost" type="button">Details</button>
           <button id="theater-bookmark-btn" class="btn btn-ghost" type="button">☆ Save</button>
           <button id="close-theater-btn" class="btn btn-ghost" type="button" aria-label="Close player">✕ Close</button>
         </div>
       </div>
 
-      <!-- 16:9 player container -->
-      <div id="player-stage" class="player-stage"></div>
+      <!-- Fullscreen shell wraps video + custom crimson control bar -->
+      <div id="theater-player-shell" class="theater-player-shell">
+        <div id="player-stage" class="player-stage"></div>
 
-      <!-- Controls below player (never covering the YouTube player) -->
+        <!-- Option A: Custom Akairis Crimson Controls (sits BELOW video, never covering it) -->
+        <div id="custom-controls" class="custom-controls hidden" aria-label="Custom video controls">
+          <button id="cc-play-btn" class="cc-btn cc-play-btn" type="button" aria-label="Play or pause">▶</button>
+          <input id="cc-seek" class="cc-seek" type="range" min="0" max="1000" value="0" aria-label="Seek timeline">
+          <span id="cc-time" class="cc-time">0:00 / 0:00</span>
+
+          <div class="cc-right">
+            <button id="cc-mute-btn" class="cc-btn" type="button" aria-label="Mute or unmute">🔊</button>
+            <input id="cc-volume" class="cc-volume" type="range" min="0" max="100" value="100" aria-label="Volume">
+            <select id="cc-speed" class="cc-speed" aria-label="Playback speed">
+              <option value="0.5">0.5x</option>
+              <option value="0.75">0.75x</option>
+              <option value="1" selected>1x</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2">2x</option>
+            </select>
+            <button id="cc-fullscreen-btn" class="cc-btn" type="button" aria-label="Fullscreen">⛶</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5-second Autoplay Next Episode Countdown Banner -->
+      <div id="autoplay-banner" class="autoplay-banner hidden" role="status">
+        <span id="autoplay-banner-text">Playing next episode in 5s...</span>
+        <div class="autoplay-banner-actions">
+          <button id="autoplay-now-btn" class="btn btn-primary" type="button">Play Now</button>
+          <button id="autoplay-cancel-btn" class="btn btn-ghost" type="button">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Episode & Track Controls -->
       <div class="theater-controls">
         <div id="episode-nav-controls" class="episode-nav-controls hidden">
           <button id="prev-ep-btn" class="btn btn-secondary" type="button">← Previous Ep</button>
           <button id="next-ep-btn" class="btn btn-secondary" type="button">Next Ep →</button>
+          <button id="mark-watched-btn" class="btn btn-ghost" type="button">✓ Mark Watched</button>
+          <label class="autoplay-toggle">
+            <input id="autoplay-toggle" type="checkbox" checked>
+            <span>Autoplay Next</span>
+          </label>
         </div>
 
         <!-- Audio track toggle (shown ONLY when both Sub / EN and Hindi Dub exist) -->
@@ -127,14 +179,12 @@
           <button id="track-sub-btn" class="track-btn" type="button" data-track="sub">Sub / EN</button>
           <button id="track-hi-btn" class="track-btn" type="button" data-track="hi">Hindi Dub</button>
         </div>
-
-        <a id="watch-yt-link" class="btn btn-ghost" href="https://www.youtube.com" target="_blank" rel="noopener noreferrer">Watch on YouTube ↗</a>
       </div>
 
       <p id="track-notice" class="track-notice hidden" role="status"></p>
       <p id="theater-synopsis" class="theater-synopsis"></p>
 
-      <!-- Season & Episode Selector (shown for Anime shows) -->
+      <!-- Season & Episode Selector -->
       <div id="episode-panel" class="episode-panel hidden">
         <div class="episode-panel-header">
           <h2>Episodes</h2>
@@ -147,8 +197,71 @@
       </div>
     </section>
 
+    <!-- Title Detail Page (shareable #hash links + More Like This) -->
+    <section id="detail-view" class="detail-view hidden" aria-label="Title details">
+      <button id="detail-back-btn" class="btn btn-ghost detail-back-btn" type="button">← Back to Browse</button>
+
+      <div class="detail-card">
+        <div class="detail-media">
+          <img id="detail-thumb" alt="Title thumbnail">
+        </div>
+        <div class="detail-info">
+          <div class="theater-badges">
+            <span id="detail-type-badge" class="badge badge-crimson">Movie</span>
+            <span id="detail-year-badge" class="badge">2024</span>
+            <span id="detail-lang-badge" class="badge">Hindi</span>
+          </div>
+          <h1 id="detail-title" class="detail-title">Title</h1>
+          <p id="detail-synopsis" class="detail-synopsis"></p>
+          <div id="detail-genres" class="card-chips"></div>
+
+          <div class="detail-actions">
+            <button id="detail-watch-btn" class="btn btn-primary" type="button">▶ Watch Now</button>
+            <button id="detail-bookmark-btn" class="btn btn-secondary" type="button">☆ Save</button>
+            <button id="detail-share-btn" class="btn btn-ghost" type="button">🔗 Copy Share Link</button>
+          </div>
+          <p id="detail-share-status" class="detail-share-status hidden"></p>
+        </div>
+      </div>
+
+      <div id="detail-episodes-wrap" class="detail-episodes-wrap hidden">
+        <div class="episode-panel-header">
+          <h2>Seasons &amp; Episodes</h2>
+          <div id="detail-track-toggle" class="track-toggle-group hidden">
+            <button id="detail-track-sub" class="track-btn" type="button">Sub / EN</button>
+            <button id="detail-track-hi" class="track-btn" type="button">Hindi Dub</button>
+          </div>
+          <select id="detail-season-select" class="select-input season-select-inline"></select>
+        </div>
+        <div id="detail-episode-list" class="episode-list"></div>
+      </div>
+
+      <section id="detail-related-section" class="catalog-section hidden">
+        <div class="section-header">
+          <h2>More Like This</h2>
+        </div>
+        <div id="detail-related-grid" class="card-grid"></div>
+      </section>
+    </section>
+
     <!-- Main Browse View -->
     <div id="browse-view">
+      <!-- Featured Hero Banner -->
+      <section id="hero-banner" class="hero-banner hidden" aria-label="Featured spotlight">
+        <img id="hero-bg-img" class="hero-bg-img" alt="Featured title backdrop">
+        <div class="hero-gradient"></div>
+        <div class="hero-content">
+          <span class="badge badge-crimson">Featured Spotlight</span>
+          <h1 id="hero-title" class="hero-title">Featured Title</h1>
+          <p id="hero-meta" class="hero-meta"></p>
+          <p id="hero-synopsis" class="hero-synopsis"></p>
+          <div class="hero-actions">
+            <button id="hero-watch-btn" class="btn btn-primary" type="button">▶ Watch Now</button>
+            <button id="hero-detail-btn" class="btn btn-secondary" type="button">More Info</button>
+          </div>
+        </div>
+      </section>
+
       <!-- Continue Watching strip -->
       <section id="continue-section" class="catalog-section hidden">
         <div class="section-header">
@@ -158,11 +271,14 @@
         <div id="continue-grid" class="continue-grid"></div>
       </section>
 
-      <!-- Search & Filter Bar -->
-      <section class="filters-bar" aria-label="Search and filters">
-        <div class="search-wrap">
-          <label for="search-input" class="sr-only">Search movies and anime</label>
-          <input id="search-input" class="search-input" type="search" placeholder="Search titles, genres, or tags...">
+      <!-- Search, Filters, Sort & Random Pick -->
+      <section class="filters-bar" aria-label="Search, filters and sorting">
+        <div class="search-row">
+          <div class="search-wrap">
+            <label for="search-input" class="sr-only">Search movies and anime</label>
+            <input id="search-input" class="search-input" type="search" placeholder="Search titles, genres, or tags...">
+          </div>
+          <button id="random-pick-btn" class="btn btn-secondary random-btn" type="button">🎲 Random Pick</button>
         </div>
 
         <div class="filter-controls">
@@ -178,6 +294,12 @@
             <option value="all">All Categories / Tags</option>
           </select>
 
+          <select id="sort-filter" class="select-input" aria-label="Sort titles">
+            <option value="newest">Sort: Newest Added</option>
+            <option value="az">Sort: A to Z</option>
+            <option value="year">Sort: Release Year</option>
+          </select>
+
           <label class="mature-toggle">
             <input id="mature-toggle" type="checkbox">
             <span>Show 18+ Mature</span>
@@ -185,17 +307,28 @@
         </div>
       </section>
 
-      <!-- Loading indicator -->
-      <div id="loading-state" class="status-card">
-        <p>Loading official showcase catalog...</p>
-      </div>
-
       <!-- Empty state -->
       <div id="empty-state" class="status-card hidden">
         <h2 id="empty-title">No matches found</h2>
         <p id="empty-desc">Try clearing your search or changing your filters.</p>
         <button id="reset-filters-btn" class="btn btn-primary" type="button">Reset Filters</button>
       </div>
+
+      <!-- Trending Row -->
+      <section id="trending-section" class="catalog-section hidden">
+        <div class="section-header">
+          <h2>Trending Now</h2>
+        </div>
+        <div id="trending-grid" class="card-grid"></div>
+      </section>
+
+      <!-- Recently Added Row -->
+      <section id="recent-section" class="catalog-section hidden">
+        <div class="section-header">
+          <h2>Recently Added</h2>
+        </div>
+        <div id="recent-grid" class="card-grid"></div>
+      </section>
 
       <!-- Movies Section -->
       <section id="movies-section" class="catalog-section hidden">
@@ -215,7 +348,7 @@
         <div id="shows-grid" class="card-grid"></div>
       </section>
 
-      <!-- Bookmarks Section (used in Watchlist tab) -->
+      <!-- Bookmarks Section (Watchlist tab) -->
       <section id="bookmarks-section" class="catalog-section hidden">
         <div class="section-header">
           <h2>Saved Bookmarks</h2>
@@ -225,26 +358,26 @@
       </section>
     </div>
 
-    <!-- About & Legal Disclaimer Page -->
-    <section id="about-view" class="about-view hidden" aria-label="About and legal disclaimer">
+    <!-- Credits & Legal Disclaimer Page -->
+    <section id="credits-view" class="about-view hidden" aria-label="Credits and legal disclaimer">
       <div class="about-card">
-        <h1>About Akairis &amp; Legal Disclaimer</h1>
+        <h1>Credits &amp; Official Sources</h1>
         <p id="about-statement" class="about-lead"></p>
 
         <div class="about-grid">
           <div class="about-box">
-            <h2>Official Allowlist Channels</h2>
-            <p class="about-muted">Akairis only embeds videos from the verified official or open-license YouTube channels listed below:</p>
+            <h2>Official Channels &amp; Platform Credit</h2>
+            <p class="about-muted">All streams are embedded via <a class="crimson-link" href="https://www.youtube.com" target="_blank" rel="noopener noreferrer">YouTube</a> from these verified official and open-license channels:</p>
             <ul id="allowlist-list" class="allowlist-list"></ul>
           </div>
 
           <div class="about-box">
             <h2>Rights Holders &amp; Takedown Contact</h2>
-            <p class="about-muted">All titles, trademarks, and video streams belong to their respective owners and studios. If you represent a rights holder and want a link removed from this directory, please contact:</p>
+            <p class="about-muted">All titles, trademarks, and videos belong to their respective owners and studios. If you represent a rights holder and want a title removed from this directory, please contact:</p>
             <p><a id="takedown-email-link" class="crimson-link" href="mailto:takedown@example.com">takedown@example.com</a></p>
 
-            <h3>Privacy &amp; Embeds</h3>
-            <p class="about-muted">This site uses YouTube's privacy-enhanced (<code>youtube-nocookie.com</code>) player and loads videos only when you click play. Bookmarks and watch history are stored only on your own device using browser <code>localStorage</code>.</p>
+            <h3>Privacy &amp; Playback Data</h3>
+            <p class="about-muted">Akairis uses privacy-enhanced (<code>youtube-nocookie.com</code>) embeds and loads videos only when you click play. Bookmarks, watched episodes, and resume timestamps stay on your own device via browser <code>localStorage</code>.</p>
 
             <button id="replay-intro-btn" class="btn btn-secondary" type="button">Replay Opening Intro</button>
           </div>
@@ -255,8 +388,8 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <p><strong id="footer-site-name">Akairis</strong> — Official YouTube Embed Showcase. No videos are hosted on this site.</p>
-      <button id="footer-about-btn" class="text-link-btn" type="button">About &amp; Disclaimer</button>
+      <p><strong id="footer-site-name">Akairis</strong> — Official Embedded Showcase. No video files are hosted on this site.</p>
+      <button id="footer-credits-btn" class="text-link-btn" type="button">Credits &amp; Disclaimer</button>
     </div>
   </footer>
 
