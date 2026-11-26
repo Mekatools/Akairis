@@ -4,6 +4,8 @@
   var STORAGE_INTRO = 'akairis_intro_seen';
   var STORAGE_BOOKMARKS = 'akairis_bookmarks';
   var STORAGE_HISTORY = 'akairis_history';
+  var STORAGE_POSITIONS = 'akairis_positions';
+  var STORAGE_WATCHED = 'akairis_watched';
 
   var state = {
     config: null,
@@ -14,12 +16,21 @@
     genre: 'all',
     language: 'all',
     tag: 'all',
+    sort: 'newest',
     showMature: false,
     bookmarks: [],
     history: [],
-    theater: null, // { type: 'movie'|'show', id, seasonIndex, track, epNumber, playerLoaded }
+    positions: {},
+    watched: {},
+    theater: null,
+    detail: null,
     ytApiPromise: null,
-    ytPlayerInstance: null
+    ytPlayerInstance: null,
+    progressTimer: null,
+    isSeeking: false,
+    lastSavedSec: 0,
+    autoplayTimer: null,
+    autoplaySeconds: 5
   };
 
   var els = {
@@ -30,51 +41,107 @@
     siteTagline: document.getElementById('site-tagline'),
     footerSiteName: document.getElementById('footer-site-name'),
     brandHomeLink: document.getElementById('brand-home-link'),
-    footerAboutBtn: document.getElementById('footer-about-btn'),
+    footerCreditsBtn: document.getElementById('footer-credits-btn'),
     navBtns: document.querySelectorAll('.nav-btn'),
 
     appError: document.getElementById('app-error'),
     appErrorMsg: document.getElementById('app-error-msg'),
     retryLoadBtn: document.getElementById('retry-load-btn'),
+    loadingState: document.getElementById('loading-state'),
 
     theaterSection: document.getElementById('theater-section'),
     theaterTypeBadge: document.getElementById('theater-type-badge'),
-    theaterChannelBadge: document.getElementById('theater-channel-badge'),
+    theaterWatchedBadge: document.getElementById('theater-watched-badge'),
     theaterTitle: document.getElementById('theater-title'),
     theaterSubtitle: document.getElementById('theater-subtitle'),
+    theaterDetailBtn: document.getElementById('theater-detail-btn'),
     theaterBookmarkBtn: document.getElementById('theater-bookmark-btn'),
     closeTheaterBtn: document.getElementById('close-theater-btn'),
+    theaterPlayerShell: document.getElementById('theater-player-shell'),
     playerStage: document.getElementById('player-stage'),
+
+    customControls: document.getElementById('custom-controls'),
+    ccPlayBtn: document.getElementById('cc-play-btn'),
+    ccSeek: document.getElementById('cc-seek'),
+    ccTime: document.getElementById('cc-time'),
+    ccMuteBtn: document.getElementById('cc-mute-btn'),
+    ccVolume: document.getElementById('cc-volume'),
+    ccSpeed: document.getElementById('cc-speed'),
+    ccFullscreenBtn: document.getElementById('cc-fullscreen-btn'),
+
+    autoplayBanner: document.getElementById('autoplay-banner'),
+    autoplayBannerText: document.getElementById('autoplay-banner-text'),
+    autoplayNowBtn: document.getElementById('autoplay-now-btn'),
+    autoplayCancelBtn: document.getElementById('autoplay-cancel-btn'),
+
     episodeNavControls: document.getElementById('episode-nav-controls'),
     prevEpBtn: document.getElementById('prev-ep-btn'),
     nextEpBtn: document.getElementById('next-ep-btn'),
+    markWatchedBtn: document.getElementById('mark-watched-btn'),
+    autoplayToggle: document.getElementById('autoplay-toggle'),
     trackToggleGroup: document.getElementById('track-toggle-group'),
     trackSubBtn: document.getElementById('track-sub-btn'),
     trackHiBtn: document.getElementById('track-hi-btn'),
-    watchYtLink: document.getElementById('watch-yt-link'),
     trackNotice: document.getElementById('track-notice'),
     theaterSynopsis: document.getElementById('theater-synopsis'),
     episodePanel: document.getElementById('episode-panel'),
     seasonSelect: document.getElementById('season-select'),
     episodeList: document.getElementById('episode-list'),
 
+    detailView: document.getElementById('detail-view'),
+    detailBackBtn: document.getElementById('detail-back-btn'),
+    detailThumb: document.getElementById('detail-thumb'),
+    detailTypeBadge: document.getElementById('detail-type-badge'),
+    detailYearBadge: document.getElementById('detail-year-badge'),
+    detailLangBadge: document.getElementById('detail-lang-badge'),
+    detailTitle: document.getElementById('detail-title'),
+    detailSynopsis: document.getElementById('detail-synopsis'),
+    detailGenres: document.getElementById('detail-genres'),
+    detailWatchBtn: document.getElementById('detail-watch-btn'),
+    detailBookmarkBtn: document.getElementById('detail-bookmark-btn'),
+    detailShareBtn: document.getElementById('detail-share-btn'),
+    detailShareStatus: document.getElementById('detail-share-status'),
+    detailEpisodesWrap: document.getElementById('detail-episodes-wrap'),
+    detailTrackToggle: document.getElementById('detail-track-toggle'),
+    detailTrackSub: document.getElementById('detail-track-sub'),
+    detailTrackHi: document.getElementById('detail-track-hi'),
+    detailSeasonSelect: document.getElementById('detail-season-select'),
+    detailEpisodeList: document.getElementById('detail-episode-list'),
+    detailRelatedSection: document.getElementById('detail-related-section'),
+    detailRelatedGrid: document.getElementById('detail-related-grid'),
+
     browseView: document.getElementById('browse-view'),
-    aboutView: document.getElementById('about-view'),
+    creditsView: document.getElementById('credits-view'),
+
+    heroBanner: document.getElementById('hero-banner'),
+    heroBgImg: document.getElementById('hero-bg-img'),
+    heroTitle: document.getElementById('hero-title'),
+    heroMeta: document.getElementById('hero-meta'),
+    heroSynopsis: document.getElementById('hero-synopsis'),
+    heroWatchBtn: document.getElementById('hero-watch-btn'),
+    heroDetailBtn: document.getElementById('hero-detail-btn'),
+
     continueSection: document.getElementById('continue-section'),
     continueGrid: document.getElementById('continue-grid'),
     clearHistoryBtn: document.getElementById('clear-history-btn'),
 
     searchInput: document.getElementById('search-input'),
+    randomPickBtn: document.getElementById('random-pick-btn'),
     genreFilter: document.getElementById('genre-filter'),
     languageFilter: document.getElementById('language-filter'),
     tagFilter: document.getElementById('tag-filter'),
+    sortFilter: document.getElementById('sort-filter'),
     matureToggle: document.getElementById('mature-toggle'),
 
-    loadingState: document.getElementById('loading-state'),
     emptyState: document.getElementById('empty-state'),
     emptyTitle: document.getElementById('empty-title'),
     emptyDesc: document.getElementById('empty-desc'),
     resetFiltersBtn: document.getElementById('reset-filters-btn'),
+
+    trendingSection: document.getElementById('trending-section'),
+    trendingGrid: document.getElementById('trending-grid'),
+    recentSection: document.getElementById('recent-section'),
+    recentGrid: document.getElementById('recent-grid'),
 
     moviesSection: document.getElementById('movies-section'),
     moviesCount: document.getElementById('movies-count'),
@@ -94,7 +161,7 @@
   };
 
   /* -------------------------------------------------------
-     Safe Storage Helpers
+     Storage & Intro Helpers
      ------------------------------------------------------- */
   function readStorage(key, fallback) {
     try {
@@ -117,9 +184,6 @@
     } catch (e) {}
   }
 
-  /* -------------------------------------------------------
-     Intro Animation Controller (max 2.8s, non-blocking)
-     ------------------------------------------------------- */
   var introTimer = null;
 
   function dismissIntro() {
@@ -134,8 +198,7 @@
   }
 
   function setupIntro() {
-    var skipClass = document.documentElement.classList.contains('skip-intro');
-    if (skipClass) {
+    if (document.documentElement.classList.contains('skip-intro')) {
       dismissIntro();
       return;
     }
@@ -165,6 +228,16 @@
       .replace(/'/g, '&#39;');
   }
 
+  function formatTime(sec) {
+    var total = Math.max(0, Math.floor(sec || 0));
+    var h = Math.floor(total / 3600);
+    var m = Math.floor((total % 3600) / 60);
+    var s = total % 60;
+    var mm = h > 0 && m < 10 ? '0' + m : String(m);
+    var ss = s < 10 ? '0' + s : String(s);
+    return h > 0 ? h + ':' + mm + ':' + ss : mm + ':' + ss;
+  }
+
   function thumbUrl(videoId, quality) {
     return 'https://i.ytimg.com/vi/' + encodeURIComponent(videoId) + '/' + (quality || 'maxresdefault') + '.jpg';
   }
@@ -186,8 +259,7 @@
   }
 
   function isChannelAllowed(channelId) {
-    if (!channelId) return false;
-    return state.allowlistSet.has(channelId);
+    return Boolean(channelId && state.allowlistSet.has(channelId));
   }
 
   function isBookmarked(type, id) {
@@ -197,8 +269,7 @@
   }
 
   function toggleBookmark(type, id) {
-    var exists = isBookmarked(type, id);
-    if (exists) {
+    if (isBookmarked(type, id)) {
       state.bookmarks = state.bookmarks.filter(function (b) {
         return !(b.type === type && b.id === id);
       });
@@ -207,7 +278,42 @@
     }
     writeStorage(STORAGE_BOOKMARKS, state.bookmarks);
     updateTheaterBookmarkBtn();
+    updateDetailBookmarkBtn();
     renderBrowse();
+  }
+
+  function epWatchedKey(showId, seasonNum, epNum) {
+    return showId + '|s' + seasonNum + '|e' + epNum;
+  }
+
+  function isEpisodeWatched(showId, seasonNum, epNum) {
+    return Boolean(state.watched[epWatchedKey(showId, seasonNum, epNum)]);
+  }
+
+  function setEpisodeWatched(showId, seasonNum, epNum, value) {
+    var key = epWatchedKey(showId, seasonNum, epNum);
+    if (value) {
+      state.watched[key] = true;
+    } else {
+      delete state.watched[key];
+    }
+    writeStorage(STORAGE_WATCHED, state.watched);
+  }
+
+  function saveVideoPosition(videoId, seconds) {
+    if (!videoId) return;
+    if (seconds > 8) {
+      state.positions[videoId] = Math.floor(seconds);
+    } else {
+      delete state.positions[videoId];
+    }
+    writeStorage(STORAGE_POSITIONS, state.positions);
+  }
+
+  function clearVideoPosition(videoId) {
+    if (!videoId || !state.positions[videoId]) return;
+    delete state.positions[videoId];
+    writeStorage(STORAGE_POSITIONS, state.positions);
   }
 
   function recordHistory(entry) {
@@ -259,6 +365,7 @@
       els.loadingState.classList.add('hidden');
       renderContinueWatching();
       renderBrowse();
+      handleRouteFromHash();
     } catch (err) {
       els.loadingState.classList.add('hidden');
       els.appErrorMsg.textContent = err.message || 'Unable to load catalog files.';
@@ -284,21 +391,23 @@
     els.allowlistList.innerHTML = '';
     (cfg.allowlistChannels || []).forEach(function (ch) {
       var li = document.createElement('li');
-      li.innerHTML = '<strong>' + escapeHtml(ch.name) + '</strong> — <code>' + escapeHtml(ch.id) + '</code> (' + escapeHtml(ch.type || 'official') + ')';
+      var linkHtml = ch.url
+        ? ' — <a class="crimson-link" href="' + escapeHtml(ch.url) + '" target="_blank" rel="noopener noreferrer">Visit Channel ↗</a>'
+        : '';
+      li.innerHTML =
+        '<strong>' + escapeHtml(ch.name) + '</strong> (' + escapeHtml(ch.type || 'official') + ')' + linkHtml;
       els.allowlistList.appendChild(li);
     });
   }
 
   function getAllowedMovies() {
-    var movies = (state.catalog && state.catalog.movies) || [];
-    return movies.filter(function (m) {
+    return ((state.catalog && state.catalog.movies) || []).filter(function (m) {
       return isChannelAllowed(m.channelId);
     });
   }
 
   function getAllowedShows() {
-    var shows = (state.catalog && state.catalog.shows) || [];
-    return shows.filter(function (s) {
+    return ((state.catalog && state.catalog.shows) || []).filter(function (s) {
       return (s.seasons || []).some(function (season) {
         var tracks = season.tracks || {};
         var subOk = tracks.sub && isChannelAllowed(tracks.sub.channelId) && (tracks.sub.episodes || []).length > 0;
@@ -349,31 +458,17 @@
   }
 
   /* -------------------------------------------------------
-     Filtering & Rendering Browse Views
+     Filtering, Sorting & Hero / Rows
      ------------------------------------------------------- */
   function matchesCommonFilters(item) {
     if (!state.showMature && item.mature === true) return false;
-
-    if (state.genre !== 'all') {
-      if ((item.genres || []).indexOf(state.genre) === -1) return false;
-    }
-
-    if (state.tag !== 'all') {
-      if ((item.tags || []).indexOf(state.tag) === -1) return false;
-    }
-
+    if (state.genre !== 'all' && (item.genres || []).indexOf(state.genre) === -1) return false;
+    if (state.tag !== 'all' && (item.tags || []).indexOf(state.tag) === -1) return false;
     if (state.search.trim()) {
       var q = state.search.trim().toLowerCase();
-      var haystack = [
-        item.title,
-        item.synopsis,
-        (item.genres || []).join(' '),
-        (item.tags || []).join(' '),
-        item.language || ''
-      ].join(' ').toLowerCase();
-      if (haystack.indexOf(q) === -1) return false;
+      var hay = [item.title, item.synopsis, (item.genres || []).join(' '), (item.tags || []).join(' '), item.language || ''].join(' ').toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
     }
-
     return true;
   }
 
@@ -401,19 +496,144 @@
     return true;
   }
 
+  function sortItems(items) {
+    var copy = items.slice();
+    if (state.sort === 'az') {
+      copy.sort(function (a, b) { return String(a.title).localeCompare(String(b.title)); });
+    } else if (state.sort === 'year') {
+      copy.sort(function (a, b) { return (b.year || 0) - (a.year || 0); });
+    } else {
+      copy.sort(function (a, b) {
+        var da = a.addedAt ? Date.parse(a.addedAt) : 0;
+        var db = b.addedAt ? Date.parse(b.addedAt) : 0;
+        return db - da;
+      });
+    }
+    return copy;
+  }
+
+  function getShowPreviewInfo(show) {
+    var s0 = (show.seasons || [])[0];
+    if (!s0 || !s0.tracks) return { videoId: '', hasSub: false, hasHi: false, epCount: 0 };
+    var hasSub = Boolean(s0.tracks.sub && isChannelAllowed(s0.tracks.sub.channelId) && (s0.tracks.sub.episodes || []).length);
+    var hasHi = Boolean(s0.tracks.hi && isChannelAllowed(s0.tracks.hi.channelId) && (s0.tracks.hi.episodes || []).length);
+    var firstEp = hasSub ? s0.tracks.sub.episodes[0] : (hasHi ? s0.tracks.hi.episodes[0] : null);
+    var epCount = hasSub ? s0.tracks.sub.episodes.length : (hasHi ? s0.tracks.hi.episodes.length : 0);
+    return {
+      videoId: firstEp ? firstEp.videoId : '',
+      hasSub: hasSub,
+      hasHi: hasHi,
+      epCount: epCount
+    };
+  }
+
+  function renderHero(movies, shows) {
+    var isDefaultBrowse =
+      state.activeTab === 'all' &&
+      !state.search.trim() &&
+      state.genre === 'all' &&
+      state.language === 'all' &&
+      state.tag === 'all';
+
+    if (!isDefaultBrowse || state.detail) {
+      els.heroBanner.classList.add('hidden');
+      return;
+    }
+
+    var pool = movies.map(function (m) { return { type: 'movie', item: m }; })
+      .concat(shows.map(function (s) { return { type: 'show', item: s }; }))
+      .filter(function (entry) { return state.showMature || !entry.item.mature; });
+
+    if (!pool.length) {
+      els.heroBanner.classList.add('hidden');
+      return;
+    }
+
+    var featured = pool.find(function (e) { return e.item.featured === true; }) || pool[0];
+    var videoId = featured.type === 'movie'
+      ? featured.item.videoId
+      : getShowPreviewInfo(featured.item).videoId;
+
+    els.heroBanner.classList.remove('hidden');
+    els.heroTitle.textContent = featured.item.title;
+    els.heroMeta.textContent = featured.type === 'movie'
+      ? [featured.item.year, featured.item.duration, featured.item.language].filter(Boolean).join(' · ')
+      : [featured.item.year, 'Anime Series', (featured.item.genres || []).slice(0, 2).join(', ')].filter(Boolean).join(' · ');
+    els.heroSynopsis.textContent = featured.item.synopsis || '';
+
+    els.heroBgImg.dataset.fallbackTried = '';
+    els.heroBgImg.src = thumbUrl(videoId, 'maxresdefault');
+    attachThumbFallback(els.heroBgImg, videoId);
+
+    els.heroWatchBtn.onclick = function () {
+      if (featured.type === 'movie') openMovieInTheater(featured.item.id);
+      else openShowInTheater(featured.item.id);
+    };
+    els.heroDetailBtn.onclick = function () {
+      openDetailView(featured.type, featured.item.id);
+    };
+  }
+
+  function renderSpecialRows(movies, shows) {
+    var showRows =
+      state.activeTab === 'all' &&
+      !state.search.trim() &&
+      state.genre === 'all' &&
+      state.language === 'all' &&
+      state.tag === 'all';
+
+    if (!showRows) {
+      els.trendingSection.classList.add('hidden');
+      els.recentSection.classList.add('hidden');
+      return;
+    }
+
+    var allPool = movies.map(function (m) { return { type: 'movie', item: m }; })
+      .concat(shows.map(function (s) { return { type: 'show', item: s }; }))
+      .filter(function (entry) { return state.showMature || !entry.item.mature; });
+
+    var trending = allPool.filter(function (e) { return e.item.trending === true; });
+    if (!trending.length) {
+      trending = allPool.slice(0, 3);
+    }
+    els.trendingGrid.innerHTML = '';
+    trending.slice(0, 6).forEach(function (entry) {
+      els.trendingGrid.appendChild(entry.type === 'movie' ? createMovieCard(entry.item) : createShowCard(entry.item));
+    });
+    els.trendingSection.classList.toggle('hidden', trending.length === 0);
+
+    var recent = allPool.slice().sort(function (a, b) {
+      var da = a.item.addedAt ? Date.parse(a.item.addedAt) : 0;
+      var db = b.item.addedAt ? Date.parse(b.item.addedAt) : 0;
+      return db - da;
+    });
+    els.recentGrid.innerHTML = '';
+    recent.slice(0, 3).forEach(function (entry) {
+      els.recentGrid.appendChild(entry.type === 'movie' ? createMovieCard(entry.item) : createShowCard(entry.item));
+    });
+    els.recentSection.classList.toggle('hidden', recent.length === 0);
+  }
+
   function renderBrowse() {
     if (!state.catalog) return;
 
-    var isAbout = state.activeTab === 'about';
-    els.browseView.classList.toggle('hidden', isAbout);
-    els.aboutView.classList.toggle('hidden', !isAbout);
-    if (isAbout) return;
+    var isCredits = state.activeTab === 'credits';
+    var isDetail = Boolean(state.detail) && !isCredits;
+
+    els.creditsView.classList.toggle('hidden', !isCredits);
+    els.detailView.classList.toggle('hidden', !isDetail);
+    els.browseView.classList.toggle('hidden', isCredits || isDetail);
+
+    if (isCredits || isDetail) return;
 
     var movies = getAllowedMovies();
     var shows = getAllowedShows();
 
-    var filteredMovies = movies.filter(matchesMovieFilters);
-    var filteredShows = shows.filter(matchesShowFilters);
+    renderHero(movies, shows);
+    renderSpecialRows(movies, shows);
+
+    var filteredMovies = sortItems(movies.filter(matchesMovieFilters));
+    var filteredShows = sortItems(shows.filter(matchesShowFilters));
 
     if (state.activeTab === 'watchlist') {
       els.moviesSection.classList.add('hidden');
@@ -482,21 +702,24 @@
     var badgeText = isAnimeMovie ? 'Anime Movie' : 'Movie';
 
     card.innerHTML =
-      '<button class="card-thumb-btn" type="button" aria-label="Open ' + escapeHtml(movie.title) + '">' +
+      '<button class="card-thumb-btn" type="button" aria-label="Watch ' + escapeHtml(movie.title) + '">' +
         '<img alt="' + escapeHtml(movie.title) + ' thumbnail" loading="lazy">' +
         '<span class="card-tag-overlay">' + escapeHtml(badgeText) + '</span>' +
       '</button>' +
       '<div class="card-body">' +
         '<div class="card-title-row">' +
-          '<h3 class="card-title">' + escapeHtml(movie.title) + '</h3>' +
+          '<button class="card-title-btn" type="button"><h3 class="card-title">' + escapeHtml(movie.title) + '</h3></button>' +
           '<button class="bookmark-icon-btn ' + (saved ? 'is-saved' : '') + '" type="button" aria-label="Toggle bookmark">' + (saved ? '★' : '☆') + '</button>' +
         '</div>' +
-        '<div class="card-meta">' + escapeHtml(movie.year) + ' · ' + escapeHtml(movie.duration || '') + ' · ' + escapeHtml(movie.language || '') + ' · ' + escapeHtml(movie.channelName) + '</div>' +
+        '<div class="card-meta">' + escapeHtml(movie.year) + ' · ' + escapeHtml(movie.duration || '') + ' · ' + escapeHtml(movie.language || '') + '</div>' +
         '<p class="card-synopsis">' + escapeHtml(movie.synopsis) + '</p>' +
-        '<div class="card-chips">' +
-          (movie.genres || []).slice(0, 3).map(function (g) {
-            return '<span class="chip">' + escapeHtml(g) + '</span>';
-          }).join('') +
+        '<div class="card-footer-row">' +
+          '<div class="card-chips">' +
+            (movie.genres || []).slice(0, 2).map(function (g) {
+              return '<span class="chip">' + escapeHtml(g) + '</span>';
+            }).join('') +
+          '</div>' +
+          '<button class="text-link-btn card-info-btn" type="button">Details →</button>' +
         '</div>' +
       '</div>';
 
@@ -507,26 +730,17 @@
     card.querySelector('.card-thumb-btn').addEventListener('click', function () {
       openMovieInTheater(movie.id);
     });
+    card.querySelector('.card-title-btn').addEventListener('click', function () {
+      openDetailView('movie', movie.id);
+    });
+    card.querySelector('.card-info-btn').addEventListener('click', function () {
+      openDetailView('movie', movie.id);
+    });
     card.querySelector('.bookmark-icon-btn').addEventListener('click', function () {
       toggleBookmark('movie', movie.id);
     });
 
     return card;
-  }
-
-  function getShowPreviewInfo(show) {
-    var s0 = (show.seasons || [])[0];
-    if (!s0 || !s0.tracks) return { videoId: '', hasSub: false, hasHi: false, epCount: 0 };
-    var hasSub = Boolean(s0.tracks.sub && isChannelAllowed(s0.tracks.sub.channelId) && (s0.tracks.sub.episodes || []).length);
-    var hasHi = Boolean(s0.tracks.hi && isChannelAllowed(s0.tracks.hi.channelId) && (s0.tracks.hi.episodes || []).length);
-    var firstEp = hasSub ? s0.tracks.sub.episodes[0] : (hasHi ? s0.tracks.hi.episodes[0] : null);
-    var epCount = hasSub ? s0.tracks.sub.episodes.length : (hasHi ? s0.tracks.hi.episodes.length : 0);
-    return {
-      videoId: firstEp ? firstEp.videoId : '',
-      hasSub: hasSub,
-      hasHi: hasHi,
-      epCount: epCount
-    };
   }
 
   function createShowCard(show) {
@@ -537,23 +751,23 @@
     var saved = isBookmarked('show', show.id);
 
     card.innerHTML =
-      '<button class="card-thumb-btn" type="button" aria-label="Open ' + escapeHtml(show.title) + '">' +
+      '<button class="card-thumb-btn" type="button" aria-label="Watch ' + escapeHtml(show.title) + '">' +
         '<img alt="' + escapeHtml(show.title) + ' thumbnail" loading="lazy">' +
-        '<span class="card-tag-overlay">Anime Series · ' + (show.seasons || []).length + ' Season</span>' +
+        '<span class="card-tag-overlay">Anime · ' + (show.seasons || []).length + ' Season</span>' +
       '</button>' +
       '<div class="card-body">' +
         '<div class="card-title-row">' +
-          '<h3 class="card-title">' + escapeHtml(show.title) + '</h3>' +
+          '<button class="card-title-btn" type="button"><h3 class="card-title">' + escapeHtml(show.title) + '</h3></button>' +
           '<button class="bookmark-icon-btn ' + (saved ? 'is-saved' : '') + '" type="button" aria-label="Toggle bookmark">' + (saved ? '★' : '☆') + '</button>' +
         '</div>' +
         '<div class="card-meta">' + escapeHtml(show.year) + ' · ' + escapeHtml(info.epCount) + ' Ep listed</div>' +
         '<p class="card-synopsis">' + escapeHtml(show.synopsis) + '</p>' +
-        '<div class="card-chips">' +
-          (info.hasSub ? '<span class="chip">Sub / EN</span>' : '') +
-          (info.hasHi ? '<span class="chip chip-dub">Hindi Dub</span>' : '') +
-          (show.genres || []).slice(0, 2).map(function (g) {
-            return '<span class="chip">' + escapeHtml(g) + '</span>';
-          }).join('') +
+        '<div class="card-footer-row">' +
+          '<div class="card-chips">' +
+            (info.hasSub ? '<span class="chip">Sub / EN</span>' : '') +
+            (info.hasHi ? '<span class="chip chip-dub">Hindi Dub</span>' : '') +
+          '</div>' +
+          '<button class="text-link-btn card-info-btn" type="button">Details →</button>' +
         '</div>' +
       '</div>';
 
@@ -565,6 +779,12 @@
 
     card.querySelector('.card-thumb-btn').addEventListener('click', function () {
       openShowInTheater(show.id);
+    });
+    card.querySelector('.card-title-btn').addEventListener('click', function () {
+      openDetailView('show', show.id);
+    });
+    card.querySelector('.card-info-btn').addEventListener('click', function () {
+      openDetailView('show', show.id);
     });
     card.querySelector('.bookmark-icon-btn').addEventListener('click', function () {
       toggleBookmark('show', show.id);
@@ -590,6 +810,8 @@
     els.continueSection.classList.toggle('hidden', validHistory.length === 0);
 
     validHistory.slice(0, 6).forEach(function (item) {
+      var savedSec = state.positions[item.videoId];
+      var posText = savedSec ? ' · ' + formatTime(savedSec) : '';
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'continue-card';
@@ -597,7 +819,7 @@
         '<img alt="' + escapeHtml(item.title) + '" loading="lazy">' +
         '<div class="continue-info">' +
           '<h3>' + escapeHtml(item.title) + '</h3>' +
-          '<p>' + escapeHtml(item.subtitle) + '</p>' +
+          '<p>' + escapeHtml(item.subtitle + posText) + '</p>' +
         '</div>';
 
       var img = btn.querySelector('img');
@@ -616,14 +838,192 @@
   }
 
   /* -------------------------------------------------------
-     Theater Player (1 active player, click-to-load, nocookie)
+     Title Detail View & Shareable Hash Links
      ------------------------------------------------------- */
+  function openDetailView(type, id, updateHash) {
+    if (updateHash !== false) {
+      var targetHash = '#' + type + '/' + id;
+      if (window.location.hash !== targetHash) {
+        window.location.hash = targetHash;
+      }
+    }
+
+    var item = type === 'movie'
+      ? getAllowedMovies().find(function (m) { return m.id === id; })
+      : getAllowedShows().find(function (s) { return s.id === id; });
+
+    if (!item) return;
+
+    state.detail = { type: type, id: id, seasonIndex: 0, track: 'sub' };
+    if (state.activeTab === 'credits') {
+      state.activeTab = 'all';
+      els.navBtns.forEach(function (b) { b.classList.toggle('is-active', b.dataset.tab === 'all'); });
+    }
+    renderDetailView();
+    renderBrowse();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function closeDetailView(clearHash) {
+    state.detail = null;
+    if (clearHash && window.location.hash) {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+    renderBrowse();
+  }
+
+  function updateDetailBookmarkBtn() {
+    if (!state.detail) return;
+    var saved = isBookmarked(state.detail.type, state.detail.id);
+    els.detailBookmarkBtn.textContent = saved ? '★ Saved' : '☆ Save';
+  }
+
+  function renderDetailView() {
+    if (!state.detail) return;
+    var d = state.detail;
+    var item = d.type === 'movie'
+      ? getAllowedMovies().find(function (m) { return m.id === d.id; })
+      : getAllowedShows().find(function (s) { return s.id === d.id; });
+
+    if (!item) return;
+
+    var videoId = d.type === 'movie' ? item.videoId : getShowPreviewInfo(item).videoId;
+    els.detailThumb.dataset.fallbackTried = '';
+    els.detailThumb.src = thumbUrl(videoId, 'maxresdefault');
+    attachThumbFallback(els.detailThumb, videoId);
+
+    els.detailTypeBadge.textContent = d.type === 'movie'
+      ? ((item.tags || []).indexOf('anime-movies') !== -1 ? 'Anime Movie' : 'Movie')
+      : 'Anime Series';
+    els.detailYearBadge.textContent = item.year ? String(item.year) : '';
+    els.detailLangBadge.textContent = d.type === 'movie'
+      ? (item.language || 'Official')
+      : (getShowPreviewInfo(item).hasHi ? 'Sub / EN & Hindi Dub' : 'Sub / EN');
+    els.detailTitle.textContent = item.title;
+    els.detailSynopsis.textContent = item.synopsis || '';
+    els.detailShareStatus.classList.add('hidden');
+
+    els.detailGenres.innerHTML = (item.genres || []).map(function (g) {
+      return '<span class="chip">' + escapeHtml(g) + '</span>';
+    }).join('');
+
+    updateDetailBookmarkBtn();
+
+    els.detailWatchBtn.onclick = function () {
+      if (d.type === 'movie') {
+        openMovieInTheater(item.id);
+      } else {
+        openShowInTheater(item.id, d.seasonIndex, d.track);
+      }
+    };
+
+    if (d.type === 'show') {
+      renderDetailEpisodes(item);
+    } else {
+      els.detailEpisodesWrap.classList.add('hidden');
+    }
+
+    renderRelatedTitles(d.type, item);
+  }
+
+  function renderDetailEpisodes(show) {
+    els.detailEpisodesWrap.classList.remove('hidden');
+    var season = show.seasons[state.detail.seasonIndex] || show.seasons[0];
+    state.detail.track = chooseAvailableTrack(season, state.detail.track);
+
+    els.detailSeasonSelect.innerHTML = '';
+    show.seasons.forEach(function (s, idx) {
+      var opt = document.createElement('option');
+      opt.value = String(idx);
+      opt.textContent = s.title || ('Season ' + s.seasonNumber);
+      els.detailSeasonSelect.appendChild(opt);
+    });
+    els.detailSeasonSelect.value = String(state.detail.seasonIndex);
+
+    var hasSub = getTrackEpisodes(season, 'sub').length > 0;
+    var hasHi = getTrackEpisodes(season, 'hi').length > 0;
+    els.detailTrackToggle.classList.toggle('hidden', !(hasSub && hasHi));
+    els.detailTrackSub.classList.toggle('is-active', state.detail.track === 'sub');
+    els.detailTrackHi.classList.toggle('is-active', state.detail.track === 'hi');
+
+    var episodes = getTrackEpisodes(season, state.detail.track);
+    els.detailEpisodeList.innerHTML = '';
+    episodes.forEach(function (ep) {
+      var watched = isEpisodeWatched(show.id, season.seasonNumber, ep.ep);
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ep-btn';
+      btn.innerHTML =
+        '<div class="ep-btn-top">' +
+          '<span class="ep-num">Episode ' + escapeHtml(ep.ep) + (ep.duration ? ' · ' + escapeHtml(ep.duration) : '') + '</span>' +
+          (watched ? '<span class="ep-watched-tag">✓ Watched</span>' : '') +
+        '</div>' +
+        '<span class="ep-title">' + escapeHtml(ep.title) + '</span>';
+      btn.addEventListener('click', function () {
+        openShowInTheater(show.id, state.detail.seasonIndex, state.detail.track, ep.ep);
+      });
+      els.detailEpisodeList.appendChild(btn);
+    });
+  }
+
+  function renderRelatedTitles(currentType, currentItem) {
+    var genres = currentItem.genres || [];
+    var pool = getAllowedMovies().map(function (m) { return { type: 'movie', item: m }; })
+      .concat(getAllowedShows().map(function (s) { return { type: 'show', item: s }; }))
+      .filter(function (entry) {
+        if (entry.type === currentType && entry.item.id === currentItem.id) return false;
+        if (!state.showMature && entry.item.mature) return false;
+        return (entry.item.genres || []).some(function (g) { return genres.indexOf(g) !== -1; });
+      });
+
+    els.detailRelatedGrid.innerHTML = '';
+    pool.slice(0, 3).forEach(function (entry) {
+      els.detailRelatedGrid.appendChild(entry.type === 'movie' ? createMovieCard(entry.item) : createShowCard(entry.item));
+    });
+    els.detailRelatedSection.classList.toggle('hidden', pool.length === 0);
+  }
+
+  function handleRouteFromHash() {
+    var hash = window.location.hash || '';
+    var match = hash.match(/^#(movie|show)\/([a-zA-Z0-9_-]+)$/);
+    if (match) {
+      openDetailView(match[1], match[2], false);
+    } else if (state.detail) {
+      state.detail = null;
+      renderBrowse();
+    }
+  }
+
+  /* -------------------------------------------------------
+     Theater Player & Option A Custom Crimson Controls
+     ------------------------------------------------------- */
+  function cancelAutoplayCountdown() {
+    if (state.autoplayTimer) {
+      clearInterval(state.autoplayTimer);
+      state.autoplayTimer = null;
+    }
+    els.autoplayBanner.classList.add('hidden');
+  }
+
+  function stopProgressPolling() {
+    if (state.progressTimer) {
+      clearInterval(state.progressTimer);
+      state.progressTimer = null;
+    }
+  }
+
   function destroyActivePlayer() {
+    cancelAutoplayCountdown();
+    stopProgressPolling();
     if (state.ytPlayerInstance && typeof state.ytPlayerInstance.destroy === 'function') {
       try { state.ytPlayerInstance.destroy(); } catch (e) {}
     }
     state.ytPlayerInstance = null;
     els.playerStage.innerHTML = '';
+    els.customControls.classList.add('hidden');
+    els.ccPlayBtn.textContent = '▶';
+    els.ccSeek.value = '0';
+    els.ccTime.textContent = '0:00 / 0:00';
   }
 
   function closeTheater() {
@@ -636,12 +1036,9 @@
     var movie = getAllowedMovies().find(function (m) { return m.id === movieId; });
     if (!movie) return;
 
-    switchTab(state.activeTab === 'about' ? 'all' : state.activeTab);
-    state.theater = {
-      type: 'movie',
-      id: movie.id,
-      playerLoaded: false
-    };
+    state.detail = null;
+    switchTab(state.activeTab === 'credits' ? 'all' : state.activeTab);
+    state.theater = { type: 'movie', id: movie.id };
     renderTheater();
     els.theaterSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -650,7 +1047,8 @@
     var show = getAllowedShows().find(function (s) { return s.id === showId; });
     if (!show) return;
 
-    switchTab(state.activeTab === 'about' ? 'all' : state.activeTab);
+    state.detail = null;
+    switchTab(state.activeTab === 'credits' ? 'all' : state.activeTab);
 
     var sIdx = typeof seasonIndex === 'number' && show.seasons[seasonIndex] ? seasonIndex : 0;
     var season = show.seasons[sIdx];
@@ -664,8 +1062,7 @@
       seasonIndex: sIdx,
       track: track,
       epNumber: epObj ? epObj.ep : 1,
-      notice: '',
-      playerLoaded: false
+      notice: ''
     };
 
     renderTheater();
@@ -705,11 +1102,10 @@
       if (!movie) return;
 
       els.theaterTypeBadge.textContent = (movie.tags || []).indexOf('anime-movies') !== -1 ? 'Anime Movie' : 'Movie';
-      els.theaterChannelBadge.textContent = 'Official: ' + movie.channelName;
+      els.theaterWatchedBadge.classList.add('hidden');
       els.theaterTitle.textContent = movie.title;
       els.theaterSubtitle.textContent = [movie.year, movie.duration, movie.language].filter(Boolean).join(' · ');
       els.theaterSynopsis.textContent = movie.synopsis || '';
-      els.watchYtLink.href = 'https://www.youtube.com/watch?v=' + encodeURIComponent(movie.videoId);
 
       els.episodeNavControls.classList.add('hidden');
       els.trackToggleGroup.classList.add('hidden');
@@ -746,24 +1142,24 @@
     var currentEp = episodes[epIndex];
     if (!currentEp) return;
 
+    var watched = isEpisodeWatched(show.id, season.seasonNumber, currentEp.ep);
     var hasSub = getTrackEpisodes(season, 'sub').length > 0;
     var hasHi = getTrackEpisodes(season, 'hi').length > 0;
 
     els.theaterTypeBadge.textContent = 'Anime Series';
-    els.theaterChannelBadge.textContent = 'Official: ' + trackObj.channelName;
+    els.theaterWatchedBadge.classList.toggle('hidden', !watched);
     els.theaterTitle.textContent = show.title;
     els.theaterSubtitle.textContent =
       (season.title || ('Season ' + season.seasonNumber)) +
       ' · Episode ' + currentEp.ep + ': ' + currentEp.title +
       ' (' + (trackObj.label || trackKey) + ')';
     els.theaterSynopsis.textContent = show.synopsis || '';
-    els.watchYtLink.href = 'https://www.youtube.com/watch?v=' + encodeURIComponent(currentEp.videoId);
 
     els.episodeNavControls.classList.remove('hidden');
     els.prevEpBtn.disabled = epIndex <= 0;
     els.nextEpBtn.disabled = epIndex >= episodes.length - 1;
+    els.markWatchedBtn.textContent = watched ? '✓ Watched' : '✓ Mark Watched';
 
-    // Show Sub / EN vs Hindi Dub toggle ONLY when both tracks exist
     if (hasSub && hasHi) {
       els.trackToggleGroup.classList.remove('hidden');
       els.trackSubBtn.classList.toggle('is-active', trackKey === 'sub');
@@ -777,7 +1173,6 @@
       els.trackNotice.classList.remove('hidden');
     }
 
-    // Season dropdown & Episode list
     els.episodePanel.classList.remove('hidden');
     els.seasonSelect.innerHTML = '';
     show.seasons.forEach(function (s, idx) {
@@ -790,11 +1185,15 @@
 
     els.episodeList.innerHTML = '';
     episodes.forEach(function (ep) {
+      var epDone = isEpisodeWatched(show.id, season.seasonNumber, ep.ep);
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'ep-btn' + (ep.ep === currentEp.ep ? ' is-active' : '');
       btn.innerHTML =
-        '<span class="ep-num">Episode ' + escapeHtml(ep.ep) + (ep.duration ? ' · ' + escapeHtml(ep.duration) : '') + '</span>' +
+        '<div class="ep-btn-top">' +
+          '<span class="ep-num">Episode ' + escapeHtml(ep.ep) + (ep.duration ? ' · ' + escapeHtml(ep.duration) : '') + '</span>' +
+          (epDone ? '<span class="ep-watched-tag">✓ Watched</span>' : '') +
+        '</div>' +
         '<span class="ep-title">' + escapeHtml(ep.title) + '</span>';
       btn.addEventListener('click', function () {
         state.theater.epNumber = ep.ep;
@@ -826,26 +1225,41 @@
       return;
     }
 
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'thumb-loader';
-    btn.setAttribute('aria-label', 'Play ' + label);
-    btn.innerHTML =
+    var savedSec = state.positions[videoId] || 0;
+    var wrap = document.createElement('div');
+    wrap.className = 'thumb-loader';
+
+    var buttonsHtml = savedSec >= 10
+      ? '<button class="btn btn-primary thumb-resume-btn" type="button">▶ Resume from ' + escapeHtml(formatTime(savedSec)) + '</button>' +
+        '<button class="btn btn-secondary thumb-start-btn" type="button">↺ Start Over</button>'
+      : '<button class="btn btn-primary thumb-start-btn" type="button">▶ Play Video</button>';
+
+    wrap.innerHTML =
       '<img alt="' + escapeHtml(label) + ' preview thumbnail">' +
       '<div class="thumb-play-overlay">' +
-        '<span class="play-circle" aria-hidden="true">▶</span>' +
-        '<span class="play-label">Click to Load Official YouTube Player</span>' +
+        '<button class="play-circle-btn" type="button" aria-label="Play ' + escapeHtml(label) + '">▶</button>' +
+        '<div class="thumb-action-row">' + buttonsHtml + '</div>' +
       '</div>';
 
-    var img = btn.querySelector('img');
+    var img = wrap.querySelector('img');
     img.src = thumbUrl(videoId, 'maxresdefault');
     attachThumbFallback(img, videoId);
 
-    btn.addEventListener('click', function () {
-      mountYouTubePlayer(videoId, label);
+    wrap.querySelector('.play-circle-btn').addEventListener('click', function () {
+      mountYouTubePlayer(videoId, label, savedSec >= 10 ? savedSec : 0);
+    });
+    var resumeBtn = wrap.querySelector('.thumb-resume-btn');
+    if (resumeBtn) {
+      resumeBtn.addEventListener('click', function () {
+        mountYouTubePlayer(videoId, label, savedSec);
+      });
+    }
+    wrap.querySelector('.thumb-start-btn').addEventListener('click', function () {
+      clearVideoPosition(videoId);
+      mountYouTubePlayer(videoId, label, 0);
     });
 
-    els.playerStage.appendChild(btn);
+    els.playerStage.appendChild(wrap);
   }
 
   function renderUnavailableStage(videoId, message) {
@@ -870,7 +1284,7 @@
     state.ytApiPromise = new Promise(function (resolve, reject) {
       var timeoutId = setTimeout(function () {
         reject(new Error('YouTube API timed out'));
-      }, 3000);
+      }, 3500);
 
       var prevReady = window.onYouTubeIframeAPIReady;
       window.onYouTubeIframeAPIReady = function () {
@@ -892,7 +1306,7 @@
     return state.ytApiPromise;
   }
 
-  function mountYouTubePlayer(videoId, label) {
+  function mountYouTubePlayer(videoId, label, startSeconds) {
     destroyActivePlayer();
     var mountDiv = document.createElement('div');
     mountDiv.id = 'yt-player-mount';
@@ -900,15 +1314,46 @@
 
     ensureYouTubeApi().then(function (YT) {
       if (!document.getElementById('yt-player-mount')) return;
+
+      els.customControls.classList.remove('hidden');
+      state.lastSavedSec = 0;
+
       state.ytPlayerInstance = new YT.Player('yt-player-mount', {
         host: 'https://www.youtube-nocookie.com',
         videoId: videoId,
         playerVars: {
           autoplay: 1,
+          controls: 0,
           rel: 0,
-          modestbranding: 1
+          iv_load_policy: 3,
+          playsinline: 1,
+          start: startSeconds > 0 ? Math.floor(startSeconds) : 0
         },
         events: {
+          onReady: function (e) {
+            var player = e.target;
+            try {
+              player.setVolume(Number(els.ccVolume.value) || 100);
+              player.setPlaybackRate(Number(els.ccSpeed.value) || 1);
+            } catch (err) {}
+            startProgressPolling(videoId);
+          },
+          onStateChange: function (e) {
+            if (e.data === YT.PlayerState.PLAYING) {
+              els.ccPlayBtn.textContent = '⏸';
+              cancelAutoplayCountdown();
+            } else if (e.data === YT.PlayerState.PAUSED) {
+              els.ccPlayBtn.textContent = '▶';
+              try {
+                saveVideoPosition(videoId, state.ytPlayerInstance.getCurrentTime());
+                renderContinueWatching();
+              } catch (err) {}
+            } else if (e.data === YT.PlayerState.ENDED) {
+              els.ccPlayBtn.textContent = '▶';
+              clearVideoPosition(videoId);
+              handlePlaybackEnded();
+            }
+          },
           onError: function () {
             renderUnavailableStage(
               videoId,
@@ -918,16 +1363,94 @@
         }
       });
     }).catch(function () {
-      // Fallback to direct privacy-enhanced iframe if API script is blocked
+      els.customControls.classList.add('hidden');
+      var startParam = startSeconds > 0 ? '&start=' + Math.floor(startSeconds) : '';
       els.playerStage.innerHTML =
         '<iframe ' +
-          'src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(videoId) + '?autoplay=1&rel=0" ' +
+          'src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(videoId) + '?autoplay=1&rel=0&iv_load_policy=3' + startParam + '" ' +
           'title="' + escapeHtml(label) + '" ' +
           'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" ' +
           'referrerpolicy="strict-origin-when-cross-origin" ' +
           'allowfullscreen>' +
         '</iframe>';
     });
+  }
+
+  function startProgressPolling(videoId) {
+    stopProgressPolling();
+    state.progressTimer = setInterval(function () {
+      var p = state.ytPlayerInstance;
+      if (!p || typeof p.getCurrentTime !== 'function') return;
+      try {
+        var cur = p.getCurrentTime() || 0;
+        var dur = p.getDuration() || 0;
+
+        if (dur > 0 && !state.isSeeking) {
+          els.ccSeek.value = String(Math.round((cur / dur) * 1000));
+          els.ccTime.textContent = formatTime(cur) + ' / ' + formatTime(dur);
+
+          if (Math.abs(cur - state.lastSavedSec) >= 3) {
+            state.lastSavedSec = cur;
+            if (cur < dur - 12) {
+              saveVideoPosition(videoId, cur);
+            } else {
+              clearVideoPosition(videoId);
+            }
+          }
+        }
+      } catch (e) {}
+    }, 450);
+  }
+
+  function handlePlaybackEnded() {
+    if (!state.theater || state.theater.type !== 'show') return;
+    var show = getAllowedShows().find(function (s) { return s.id === state.theater.id; });
+    if (!show) return;
+    var season = show.seasons[state.theater.seasonIndex];
+    var episodes = getTrackEpisodes(season, state.theater.track);
+
+    setEpisodeWatched(show.id, season.seasonNumber, state.theater.epNumber, true);
+    els.theaterWatchedBadge.classList.remove('hidden');
+    els.markWatchedBtn.textContent = '✓ Watched';
+
+    var idx = episodes.findIndex(function (e) { return e.ep === state.theater.epNumber; });
+    var nextEp = episodes[idx + 1];
+
+    if (nextEp && els.autoplayToggle.checked) {
+      startAutoplayCountdown(nextEp);
+    }
+  }
+
+  function startAutoplayCountdown(nextEp) {
+    cancelAutoplayCountdown();
+    state.autoplaySeconds = 5;
+    els.autoplayBannerText.textContent = 'Up next: Episode ' + nextEp.ep + ' in ' + state.autoplaySeconds + 's...';
+    els.autoplayBanner.classList.remove('hidden');
+
+    state.autoplayTimer = setInterval(function () {
+      state.autoplaySeconds -= 1;
+      if (state.autoplaySeconds <= 0) {
+        cancelAutoplayCountdown();
+        playNextEpisodeImmediately();
+      } else {
+        els.autoplayBannerText.textContent = 'Up next: Episode ' + nextEp.ep + ' in ' + state.autoplaySeconds + 's...';
+      }
+    }, 1000);
+  }
+
+  function playNextEpisodeImmediately() {
+    if (!state.theater || state.theater.type !== 'show') return;
+    var show = getAllowedShows().find(function (s) { return s.id === state.theater.id; });
+    if (!show) return;
+    var season = show.seasons[state.theater.seasonIndex];
+    var episodes = getTrackEpisodes(season, state.theater.track);
+    var idx = episodes.findIndex(function (e) { return e.ep === state.theater.epNumber; });
+    var nextEp = episodes[idx + 1];
+    if (!nextEp) return;
+    state.theater.epNumber = nextEp.ep;
+    state.theater.notice = '';
+    renderTheater();
+    mountYouTubePlayer(nextEp.videoId, show.title + ' Episode ' + nextEp.ep, 0);
   }
 
   function switchTrack(targetTrack) {
@@ -968,27 +1491,42 @@
     renderTheater();
   }
 
+  function toggleFullscreenShell() {
+    var shell = els.theaterPlayerShell;
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(function () {});
+      return;
+    }
+    if (shell.requestFullscreen) {
+      shell.requestFullscreen().catch(function () {
+        shell.classList.toggle('is-pseudo-fullscreen');
+      });
+    } else {
+      shell.classList.toggle('is-pseudo-fullscreen');
+    }
+  }
+
   /* -------------------------------------------------------
-     Navigation & Event Listeners
+     Navigation & Events
      ------------------------------------------------------- */
   function switchTab(tab) {
     state.activeTab = tab;
+    state.detail = null;
+    if (window.location.hash && tab !== 'credits') {
+      history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
     els.navBtns.forEach(function (btn) {
       btn.classList.toggle('is-active', btn.dataset.tab === tab);
     });
-    if (tab === 'about') {
+    if (tab === 'credits') {
       closeTheater();
     }
     renderBrowse();
   }
 
   function bindEvents() {
-    if (els.skipIntroBtn) {
-      els.skipIntroBtn.addEventListener('click', dismissIntro);
-    }
-    if (els.replayIntroBtn) {
-      els.replayIntroBtn.addEventListener('click', replayIntro);
-    }
+    if (els.skipIntroBtn) els.skipIntroBtn.addEventListener('click', dismissIntro);
+    if (els.replayIntroBtn) els.replayIntroBtn.addEventListener('click', replayIntro);
 
     els.navBtns.forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -1002,13 +1540,18 @@
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    els.footerAboutBtn.addEventListener('click', function () {
-      switchTab('about');
+    els.footerCreditsBtn.addEventListener('click', function () {
+      switchTab('credits');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
     els.retryLoadBtn.addEventListener('click', initData);
     els.closeTheaterBtn.addEventListener('click', closeTheater);
+
+    els.theaterDetailBtn.addEventListener('click', function () {
+      if (!state.theater) return;
+      openDetailView(state.theater.type, state.theater.id);
+    });
 
     els.theaterBookmarkBtn.addEventListener('click', function () {
       if (!state.theater) return;
@@ -1017,6 +1560,22 @@
 
     els.prevEpBtn.addEventListener('click', function () { stepEpisode(-1); });
     els.nextEpBtn.addEventListener('click', function () { stepEpisode(1); });
+
+    els.markWatchedBtn.addEventListener('click', function () {
+      if (!state.theater || state.theater.type !== 'show') return;
+      var show = getAllowedShows().find(function (s) { return s.id === state.theater.id; });
+      if (!show) return;
+      var season = show.seasons[state.theater.seasonIndex];
+      var currently = isEpisodeWatched(show.id, season.seasonNumber, state.theater.epNumber);
+      setEpisodeWatched(show.id, season.seasonNumber, state.theater.epNumber, !currently);
+      renderTheater();
+    });
+
+    els.autoplayNowBtn.addEventListener('click', function () {
+      cancelAutoplayCountdown();
+      playNextEpisodeImmediately();
+    });
+    els.autoplayCancelBtn.addEventListener('click', cancelAutoplayCountdown);
 
     els.trackSubBtn.addEventListener('click', function () { switchTrack('sub'); });
     els.trackHiBtn.addEventListener('click', function () { switchTrack('hi'); });
@@ -1034,30 +1593,133 @@
       renderTheater();
     });
 
+    /* Custom Control Bar Listeners */
+    els.ccPlayBtn.addEventListener('click', function () {
+      var p = state.ytPlayerInstance;
+      if (!p || typeof p.getPlayerState !== 'function') return;
+      if (p.getPlayerState() === 1) p.pauseVideo();
+      else p.playVideo();
+    });
+
+    els.ccSeek.addEventListener('input', function () {
+      state.isSeeking = true;
+    });
+    els.ccSeek.addEventListener('change', function () {
+      state.isSeeking = false;
+      var p = state.ytPlayerInstance;
+      if (!p || typeof p.getDuration !== 'function') return;
+      var dur = p.getDuration() || 0;
+      if (dur > 0) {
+        p.seekTo((Number(els.ccSeek.value) / 1000) * dur, true);
+      }
+    });
+
+    els.ccMuteBtn.addEventListener('click', function () {
+      var p = state.ytPlayerInstance;
+      if (!p || typeof p.isMuted !== 'function') return;
+      if (p.isMuted()) {
+        p.unMute();
+        els.ccMuteBtn.textContent = '🔊';
+      } else {
+        p.mute();
+        els.ccMuteBtn.textContent = '🔇';
+      }
+    });
+
+    els.ccVolume.addEventListener('input', function () {
+      var p = state.ytPlayerInstance;
+      var vol = Number(els.ccVolume.value);
+      if (!p || typeof p.setVolume !== 'function') return;
+      p.setVolume(vol);
+      if (vol === 0) {
+        p.mute();
+        els.ccMuteBtn.textContent = '🔇';
+      } else {
+        p.unMute();
+        els.ccMuteBtn.textContent = '🔊';
+      }
+    });
+
+    els.ccSpeed.addEventListener('change', function () {
+      var p = state.ytPlayerInstance;
+      if (!p || typeof p.setPlaybackRate !== 'function') return;
+      p.setPlaybackRate(Number(els.ccSpeed.value) || 1);
+    });
+
+    els.ccFullscreenBtn.addEventListener('click', toggleFullscreenShell);
+
+    /* Detail View Listeners */
+    els.detailBackBtn.addEventListener('click', function () {
+      closeDetailView(true);
+    });
+    els.detailBookmarkBtn.addEventListener('click', function () {
+      if (!state.detail) return;
+      toggleBookmark(state.detail.type, state.detail.id);
+    });
+    els.detailShareBtn.addEventListener('click', function () {
+      var url = window.location.href;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(function () {
+          els.detailShareStatus.textContent = 'Share link copied!';
+          els.detailShareStatus.classList.remove('hidden');
+        }).catch(function () {
+          window.prompt('Copy this share link:', url);
+        });
+      } else {
+        window.prompt('Copy this share link:', url);
+      }
+    });
+    els.detailSeasonSelect.addEventListener('change', function () {
+      if (!state.detail) return;
+      state.detail.seasonIndex = Number(els.detailSeasonSelect.value) || 0;
+      renderDetailView();
+    });
+    els.detailTrackSub.addEventListener('click', function () {
+      if (!state.detail) return;
+      state.detail.track = 'sub';
+      renderDetailView();
+    });
+    els.detailTrackHi.addEventListener('click', function () {
+      if (!state.detail) return;
+      state.detail.track = 'hi';
+      renderDetailView();
+    });
+
+    /* Search, Filters, Sort & Random Pick */
     els.searchInput.addEventListener('input', function () {
       state.search = els.searchInput.value;
       renderBrowse();
     });
-
     els.genreFilter.addEventListener('change', function () {
       state.genre = els.genreFilter.value;
       renderBrowse();
     });
-
     els.languageFilter.addEventListener('change', function () {
       state.language = els.languageFilter.value;
       renderBrowse();
     });
-
     els.tagFilter.addEventListener('change', function () {
       state.tag = els.tagFilter.value;
       renderBrowse();
     });
-
+    els.sortFilter.addEventListener('change', function () {
+      state.sort = els.sortFilter.value;
+      renderBrowse();
+    });
     els.matureToggle.addEventListener('change', function () {
       state.showMature = els.matureToggle.checked;
       renderContinueWatching();
       renderBrowse();
+    });
+
+    els.randomPickBtn.addEventListener('click', function () {
+      var pool = getAllowedMovies().map(function (m) { return { type: 'movie', item: m }; })
+        .concat(getAllowedShows().map(function (s) { return { type: 'show', item: s }; }))
+        .filter(function (e) { return state.showMature || !e.item.mature; });
+      if (!pool.length) return;
+      var pick = pool[Math.floor(Math.random() * pool.length)];
+      if (pick.type === 'movie') openMovieInTheater(pick.item.id);
+      else openShowInTheater(pick.item.id);
     });
 
     els.resetFiltersBtn.addEventListener('click', function () {
@@ -1078,13 +1740,14 @@
       renderContinueWatching();
       renderBrowse();
     });
+
+    window.addEventListener('hashchange', handleRouteFromHash);
   }
 
-  /* -------------------------------------------------------
-     Start App
-     ------------------------------------------------------- */
   state.bookmarks = readStorage(STORAGE_BOOKMARKS, []);
   state.history = readStorage(STORAGE_HISTORY, []);
+  state.positions = readStorage(STORAGE_POSITIONS, {});
+  state.watched = readStorage(STORAGE_WATCHED, {});
 
   setupIntro();
   bindEvents();
