@@ -1,0 +1,134 @@
+{
+  "updatedAt": "2026-11-26T00:00:00Z",
+  "movies": [
+    {
+      "id": "sintel-2010",
+      "title": "Sintel",
+      "year": 2010,
+      "duration": "15m",
+      "genres": ["Fantasy", "Action", "Drama"],
+      "language": "English",
+      "tags": ["open-license", "3d-animation"],
+      "mature": false,
+      "synopsis": "A lonely young warrior searches across snow and desert for the baby dragon she befriended, leading to a dramatic encounter.",
+      "channelId": "UCSMOQeBJ2RAnuFungnQOxLg",
+      "channelName": "Blender",
+      "videoId": "eRsGyueVLvQ"
+    },
+    {
+      "id": "tears-of-steel-2012",
+      "title": "Tears of Steel",
+      "year": 2012,
+      "duration": "12m",
+      "genres": ["Sci-Fi", "Action"],
+      "language": "English",
+      "tags": ["open-license", "vfx"],
+      "mature": false,
+      "synopsis": "In a future Amsterdam, a group of warriors and scientists reunite an old hero with technology to stop destructive robots.",
+      "channelId": "UCSMOQeBJ2RAnuFungnQOxLg",
+      "channelName": "Blender",
+      "videoId": "R6MlUcmOul8"
+    },
+    {
+      "id": "big-buck-bunny-2008",
+      "title": "Big Buck Bunny",
+      "year": 2008,
+      "duration": "10m",
+      "genres": ["Comedy", "Animation"],
+      "language": "English",
+      "tags": ["open-license", "3d-animation"],
+      "mature": false,
+      "synopsis": "A gentle giant rabbit's peaceful morning in the forest is interrupted by three mischievous rodents—until he decides to fight back.",
+      "channelId": "UCSMOQeBJ2RAnuFungnQOxLg",
+      "channelName": "Blender",
+      "videoId": "aqz-KE-bpKQ"
+    }
+  ],
+  "shows": [
+    {
+      "id": "classroom-of-the-elite",
+      "title": "Classroom of the Elite",
+      "year": 2017,
+      "genres": ["Psychological", "Drama", "Thriller"],
+      "tags": ["anime-series", "school"],
+      "mature": false,
+      "synopsis": "At Tokyo's elite Koudo Ikusei High School, students are ranked strictly by merit. Placed in the lowest Class 1-D, Kiyotaka Ayanokoji uncovers the ruthless rules behind the school's point system.",
+      "seasons": [
+        {
+          "seasonNumber": 1,
+          "title": "Season 1",
+          "tracks": {
+            "sub": {
+              "label": "Sub / EN",
+              "channelId": "UCGbshtvS9t-8CW11W7TooQg",
+              "channelName": "Muse Asia",
+              "episodes": [
+                {
+                  "ep": 1,
+                  "title": "What is Evil? Whatever Springs from Weakness.",
+                  "videoId": "2wNQpTgrmDQ",
+                  "duration": "24m"
+                }
+              ]
+            },
+            "hi": {
+              "label": "Hindi Dub",
+              "channelId": "UCYYhAzgWuxPauRXdPpLAX3Q",
+              "channelName": "Muse India",
+              "episodes": [
+                {
+                  "ep": 1,
+                  "title": "Episode 01 (Hindi Dub)",
+                  "videoId": "S7LtjQvh6Qc",
+                  "duration": "24m"
+                },
+                {
+                  "ep": 2,
+                  "title": "Episode 02 (Hindi Dub)",
+                  "videoId": "a8QaZ2d3T0s",
+                  "duration": "24m"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "parallel-world-pharmacy",
+      "title": "Parallel World Pharmacy",
+      "year": 2022,
+      "genres": ["Fantasy", "Isekai", "Medical"],
+      "tags": ["anime-series"],
+      "mature": false,
+      "synopsis": "A top modern pharmaceutical researcher is reincarnated in a medieval fantasy world as young apprentice pharmacist Falma de Medicis, using modern science and divine arts to save lives.",
+      "seasons": [
+        {
+          "seasonNumber": 1,
+          "title": "Season 1",
+          "tracks": {
+            "sub": {
+              "label": "Sub / EN",
+              "channelId": "UCGbshtvS9t-8CW11W7TooQg",
+              "channelName": "Muse Asia",
+              "episodes": [
+                {
+                  "ep": 1,
+                  "title": "The Reborn Pharmacist and Parallel World",
+                  "videoId": "hG8Ay1RFgYQ",
+                  "duration": "24m"
+                },
+                {
+                  "ep": 2,
+                  "title": "Master and Apprentice",
+                  "videoId": "o3K91l3FY1I",
+                  "duration": "24m"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
