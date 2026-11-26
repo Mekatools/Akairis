@@ -4,28 +4,50 @@
   "disclaimer": {
     "owner": "Akairis Curators",
     "takedownEmail": "takedown@example.com",
-    "statement": "Akairis is an independent showcase directory and is not affiliated with, endorsed by, or connected to YouTube, Google, Blender Foundation, Muse Communication, or any animation studio. All videos are played directly via YouTube's official embed player from their official rights-holder channels. No video files are hosted on this site."
+    "statement": "Akairis is an independent showcase directory and is not affiliated with, endorsed by, or connected to YouTube, Google, Shemaroo, Muse Communication, Blender Foundation, or any film/animation studio. All videos play through YouTube's official privacy-enhanced player from their verified official rights-holder channels. No video files are hosted on this site."
   },
   "allowlistChannels": [
     {
-      "id": "UCSMOQeBJ2RAnuFungnQOxLg",
-      "name": "Blender",
-      "type": "open-license"
+      "id": "UCF1JIbMUs6uqoZEY1Haw0GQ",
+      "name": "Shemaroo",
+      "url": "https://www.youtube.com/@shemaroo",
+      "type": "official-hindi-movies"
     },
     {
-      "id": "UCGbshtvS9t-8CW11W7TooQg",
-      "name": "Muse Asia",
-      "type": "official-anime"
+      "id": "UCU3VPgbc39AJ1p7MeHA5U8A",
+      "name": "Shemaroo Movies",
+      "url": "https://www.youtube.com/@shemaroomovies",
+      "type": "official-hindi-movies"
     },
     {
       "id": "UCYYhAzgWuxPauRXdPpLAX3Q",
       "name": "Muse India",
+      "url": "https://www.youtube.com/@MuseIndiaChannel",
+      "type": "official-anime"
+    },
+    {
+      "id": "UCGbshtvS9t-8CW11W7TooQg",
+      "name": "Muse Asia",
+      "url": "https://www.youtube.com/@MuseAsia",
       "type": "official-anime"
     },
     {
       "id": "UC0wNSTMWIL3qaorLx0jie6A",
       "name": "Ani-One Asia",
+      "url": "https://www.youtube.com/@AniOneAsia",
       "type": "official-anime"
+    },
+    {
+      "id": "UCSMOQeBJ2RAnuFungnQOxLg",
+      "name": "Blender",
+      "url": "https://www.youtube.com/@BlenderFoundation",
+      "type": "open-license"
+    },
+    {
+      "id": "UC-lUDsUcjn1H1zU8y6gdtRQ",
+      "name": "Timeless Classic Movies",
+      "url": "https://www.youtube.com/channel/UC-lUDsUcjn1H1zU8y6gdtRQ",
+      "type": "public-domain-movies"
     }
   ],
   "syncShows": [
@@ -41,6 +63,20 @@
       "title": "Parallel World Pharmacy",
       "seasonNumber": 1,
       "subPlaylistId": "PLwLSw1_eDZl1ZHXQDzK5Qit6jqLTNzjZ3",
+      "hiPlaylistId": null
+    },
+    {
+      "showId": "that-time-i-got-reincarnated-as-a-slime",
+      "title": "That Time I Got Reincarnated as a Slime",
+      "seasonNumber": 1,
+      "subPlaylistId": "PLpm1VVK4UL15OT-nLEQsG_0Ri6Pgy3PCe",
+      "hiPlaylistId": "PLpm1VVK4UL17sQvpyw2ou6aG43s3NU09W"
+    },
+    {
+      "showId": "one-punch-man",
+      "title": "One-Punch Man",
+      "seasonNumber": 1,
+      "subPlaylistId": "PLpm1VVK4UL16FvVk0QOffUwXX_vaHVjZP",
       "hiPlaylistId": null
     }
   ]
