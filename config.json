@@ -1,0 +1,47 @@
+{
+  "siteName": "Akairis",
+  "tagline": "Curated Official Cinema & Anime Showcase",
+  "disclaimer": {
+    "owner": "Akairis Curators",
+    "takedownEmail": "takedown@example.com",
+    "statement": "Akairis is an independent showcase directory and is not affiliated with, endorsed by, or connected to YouTube, Google, Blender Foundation, Muse Communication, or any animation studio. All videos are played directly via YouTube's official embed player from their official rights-holder channels. No video files are hosted on this site."
+  },
+  "allowlistChannels": [
+    {
+      "id": "UCSMOQeBJ2RAnuFungnQOxLg",
+      "name": "Blender",
+      "type": "open-license"
+    },
+    {
+      "id": "UCGbshtvS9t-8CW11W7TooQg",
+      "name": "Muse Asia",
+      "type": "official-anime"
+    },
+    {
+      "id": "UCYYhAzgWuxPauRXdPpLAX3Q",
+      "name": "Muse India",
+      "type": "official-anime"
+    },
+    {
+      "id": "UC0wNSTMWIL3qaorLx0jie6A",
+      "name": "Ani-One Asia",
+      "type": "official-anime"
+    }
+  ],
+  "syncShows": [
+    {
+      "showId": "classroom-of-the-elite",
+      "title": "Classroom of the Elite",
+      "seasonNumber": 1,
+      "subPlaylistId": "PLwLSw1_eDZl37ONxLQx-mIAJu3hdX-brM",
+      "hiPlaylistId": "PLpm1VVK4UL17x8mbfPIYWRjkCTlrqEWW5"
+    },
+    {
+      "showId": "parallel-world-pharmacy",
+      "title": "Parallel World Pharmacy",
+      "seasonNumber": 1,
+      "subPlaylistId": "PLwLSw1_eDZl1ZHXQDzK5Qit6jqLTNzjZ3",
+      "hiPlaylistId": null
+    }
+  ]
+}
