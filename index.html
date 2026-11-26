@@ -109,8 +109,10 @@
       </div>
     </section>
 
-    <!-- Theater Video Area (1 active player at a time, Option A custom controls below) -->
+    <!-- Focused Theater Watch View -->
     <section id="theater-section" class="theater-section hidden" aria-label="Video player">
+      <button id="theater-back-btn" class="btn btn-ghost detail-back-btn" type="button">← Back to Home</button>
+
       <div class="theater-top">
         <div>
           <div class="theater-badges">
@@ -123,7 +125,6 @@
         <div class="theater-top-actions">
           <button id="theater-detail-btn" class="btn btn-ghost" type="button">Details</button>
           <button id="theater-bookmark-btn" class="btn btn-ghost" type="button">☆ Save</button>
-          <button id="close-theater-btn" class="btn btn-ghost" type="button" aria-label="Close player">✕ Close</button>
         </div>
       </div>
 
@@ -195,11 +196,19 @@
         </div>
         <div id="episode-list" class="episode-list"></div>
       </div>
+
+      <!-- Related Titles below the player/episodes -->
+      <section id="theater-related-section" class="catalog-section hidden" style="margin-top: 24px;">
+        <div class="section-header">
+          <h2>More Like This</h2>
+        </div>
+        <div id="theater-related-grid" class="card-grid"></div>
+      </section>
     </section>
 
     <!-- Title Detail Page (shareable #hash links + More Like This) -->
     <section id="detail-view" class="detail-view hidden" aria-label="Title details">
-      <button id="detail-back-btn" class="btn btn-ghost detail-back-btn" type="button">← Back to Browse</button>
+      <button id="detail-back-btn" class="btn btn-ghost detail-back-btn" type="button">← Back to Home</button>
 
       <div class="detail-card">
         <div class="detail-media">
