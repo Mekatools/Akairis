@@ -3,20 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Akairis — The Crimson Anime Encyclopedia</title>
-  <meta name="description" content="Akairis is a dark crimson anime encyclopedia featuring full anime info, characters, airing countdowns, sequels, and personal tracking.">
+  <title>Akairis — The Crimson Anime &amp; Character Encyclopedia</title>
+  <meta name="description" content="Akairis is a dark crimson anime and character encyclopedia with full biographies, voice cast, sequels, airing countdowns, and personal tracking.">
   <meta name="theme-color" content="#070709">
-  <meta property="og:title" content="Akairis — The Crimson Anime Encyclopedia">
-  <meta property="og:description" content="Explore every anime, characters, studios, airing schedules, and track your watchlist.">
+  <meta property="og:title" content="Akairis — The Crimson Anime &amp; Character Encyclopedia">
+  <meta property="og:description" content="Explore every anime and character like Wikipedia, with personal watchlist tracking.">
   <meta property="og:type" content="website">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23070709' stroke='%23e11d48' stroke-width='4'/%3E%3Ccircle cx='32' cy='32' r='16' fill='%23c91c28'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%23070709'/%3E%3C/svg%3E">
   <script>
     (function () {
       try {
-        var seen = localStorage.getItem('akairis_intro_seen') === '1';
         var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (seen || reduced) {
+        if (reduced) {
           document.documentElement.classList.add('skip-intro');
         }
       } catch (e) {}
@@ -28,8 +27,8 @@
   <!-- Subtle drifting crimson cloud background -->
   <div class="cloud-bg" aria-hidden="true"></div>
 
-  <!-- First-visit animated SVG intro (max ~2.5s, skippable, no sound) -->
-  <div id="intro-overlay" class="intro-overlay" role="dialog" aria-label="Akairis opening animation">
+  <!-- Opening Crimson Eye Intro & Initial Loading Screen (auto-exits <= 2.9s, skippable) -->
+  <div id="intro-overlay" class="intro-overlay" role="dialog" aria-label="Akairis loading animation">
     <div class="intro-stage">
       <svg class="eye-svg" viewBox="0 0 260 160" width="240" height="148" aria-hidden="true">
         <defs>
@@ -42,7 +41,7 @@
         <path class="eye-outline" d="M16 80 C55 20, 205 20, 244 80 C205 140, 55 140, 16 80 Z" fill="#0d090b" stroke="#e11d48" stroke-width="3"/>
         <circle cx="130" cy="80" r="46" fill="url(#irisGrad)" stroke="#ff4d67" stroke-width="1.5"/>
         <circle cx="130" cy="80" r="30" fill="none" stroke="#180407" stroke-width="2" stroke-opacity="0.7"/>
-        <g class="tomoe-ring">
+        <g class="tomoe-ring tomoe-spin-loop">
           <g transform="translate(130, 50)">
             <circle cx="0" cy="0" r="6" fill="#090608"/>
             <path d="M2 -5 C10 -4, 11 4, 4 7 C7 3, 6 -1, 1 -2 Z" fill="#090608"/>
@@ -59,8 +58,9 @@
         <circle cx="130" cy="80" r="13" fill="#070506"/>
       </svg>
       <p class="intro-wordmark">AKAIRIS</p>
+      <p id="intro-loading-text" class="intro-loading-text">Awakening Akairis Encyclopedia...</p>
     </div>
-    <button id="skip-intro-btn" class="skip-intro-btn" type="button">Skip Intro</button>
+    <button id="skip-intro-btn" class="skip-intro-btn" type="button">Skip</button>
   </div>
 
   <!-- Top Navigation Header -->
@@ -91,35 +91,45 @@
   <main id="top" class="container main-content">
     <!-- Friendly error state -->
     <section id="app-error" class="status-card is-error hidden" role="alert">
-      <h2>Could not reach the anime encyclopedia</h2>
-      <p id="app-error-msg">Please check your connection and try again.</p>
+      <h2>Could not reach the encyclopedia</h2>
+      <p id="app-error-msg">Please check your internet connection and try again.</p>
       <button id="retry-load-btn" class="btn btn-primary" type="button">Try Again</button>
     </section>
 
-    <!-- Loading Skeletons -->
-    <section id="loading-state" class="loading-skeletons" aria-label="Loading encyclopedia">
-      <div class="skeleton-hero"></div>
-      <div class="skeleton-grid">
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-      </div>
+    <!-- In-Page Spinning Crimson Eye Loader (shows matching text for whatever is loading) -->
+    <section id="eye-loader" class="eye-loader hidden" role="status" aria-live="polite">
+      <svg class="mini-eye-svg" viewBox="0 0 120 120" width="76" height="76" aria-hidden="true">
+        <circle cx="60" cy="60" r="52" fill="#0f0709" stroke="#e11d48" stroke-width="3"/>
+        <circle cx="60" cy="60" r="34" fill="#c91c28" stroke="#ff4d67" stroke-width="1.5"/>
+        <g class="mini-tomoe-ring">
+          <g transform="translate(60, 35)">
+            <circle cx="0" cy="0" r="5" fill="#090608"/>
+            <path d="M1.5 -4 C8 -3, 9 3, 3 5.5 C5.5 2.5, 5 -1, 1 -1.5 Z" fill="#090608"/>
+          </g>
+          <g transform="rotate(120 60 60) translate(60, 35)">
+            <circle cx="0" cy="0" r="5" fill="#090608"/>
+            <path d="M1.5 -4 C8 -3, 9 3, 3 5.5 C5.5 2.5, 5 -1, 1 -1.5 Z" fill="#090608"/>
+          </g>
+          <g transform="rotate(240 60 60) translate(60, 35)">
+            <circle cx="0" cy="0" r="5" fill="#090608"/>
+            <path d="M1.5 -4 C8 -3, 9 3, 3 5.5 C5.5 2.5, 5 -1, 1 -1.5 Z" fill="#090608"/>
+          </g>
+        </g>
+        <circle cx="60" cy="60" r="10" fill="#070506"/>
+      </svg>
+      <p id="eye-loader-text" class="eye-loader-text">Loading...</p>
     </section>
 
     <!-- Wikipedia-Style Anime Entry Page -->
     <section id="wiki-view" class="wiki-view hidden" aria-label="Anime wiki entry">
       <div class="wiki-top-bar">
-        <button id="wiki-back-btn" class="btn btn-ghost" type="button">← Back to Home</button>
+        <button id="wiki-back-btn" class="btn btn-ghost" type="button">← Back</button>
         <div class="wiki-top-actions">
           <button id="wiki-share-btn" class="btn btn-ghost" type="button">🔗 Copy Wiki Link</button>
           <span id="wiki-share-status" class="wiki-share-status hidden">Copied!</span>
         </div>
       </div>
 
-      <!-- Banner + Poster + Quick Facts -->
       <article class="wiki-header-card">
         <div id="wiki-banner-wrap" class="wiki-banner-wrap">
           <img id="wiki-banner-img" class="wiki-banner-img" alt="Anime banner">
@@ -186,7 +196,7 @@
 
             <div class="wiki-section-block">
               <h2>Synopsis</h2>
-              <p id="wiki-synopsis" class="wiki-synopsis"></p>
+              <div id="wiki-synopsis" class="wiki-synopsis"></div>
             </div>
 
             <div class="wiki-section-block">
@@ -197,15 +207,15 @@
         </div>
       </article>
 
-      <!-- Characters & Voice Actors -->
+      <!-- Characters & Voice Actors (clickable -> opens full Character Wikipedia page) -->
       <section id="wiki-characters-section" class="catalog-section hidden">
         <div class="section-header">
-          <h2>Characters &amp; Voice Cast</h2>
+          <h2>Characters &amp; Voice Cast (Tap for Full Character Bio)</h2>
         </div>
         <div id="wiki-characters-grid" class="char-grid"></div>
       </section>
 
-      <!-- Relations (Prequels, Sequels, Spin-offs) -->
+      <!-- Relations -->
       <section id="wiki-relations-section" class="catalog-section hidden">
         <div class="section-header">
           <h2>Related Anime (Sequels &amp; Prequels)</h2>
@@ -219,6 +229,58 @@
           <h2>Similar Anime</h2>
         </div>
         <div id="wiki-recs-grid" class="card-grid"></div>
+      </section>
+    </section>
+
+    <!-- Full Character Wikipedia Page -->
+    <section id="character-view" class="wiki-view hidden" aria-label="Character wiki entry">
+      <div class="wiki-top-bar">
+        <button id="char-back-btn" class="btn btn-ghost" type="button">← Back</button>
+        <div class="wiki-top-actions">
+          <button id="char-share-btn" class="btn btn-ghost" type="button">🔗 Copy Character Link</button>
+          <span id="char-share-status" class="wiki-share-status hidden">Copied!</span>
+        </div>
+      </div>
+
+      <article class="wiki-header-card">
+        <div class="wiki-main-grid char-main-grid">
+          <div class="wiki-poster-col">
+            <img id="char-cover" class="wiki-cover" alt="Character portrait">
+            <div class="wiki-infobox" id="char-infobox"></div>
+          </div>
+
+          <div class="wiki-body-col">
+            <div class="theater-badges">
+              <span class="badge badge-crimson">Character Profile</span>
+              <span id="char-fav-badge" class="badge">♥ 0 Favorites</span>
+            </div>
+
+            <h1 id="char-title" class="wiki-title">Character Name</h1>
+            <p id="char-native-title" class="wiki-native-title"></p>
+            <p id="char-alt-names" class="char-alt-names hidden"></p>
+
+            <div class="wiki-section-block">
+              <h2>Biography &amp; Background</h2>
+              <div id="char-bio" class="wiki-synopsis"></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Voice Actors -->
+      <section id="char-va-section" class="catalog-section hidden">
+        <div class="section-header">
+          <h2>Voice Actors (Seiyuu)</h2>
+        </div>
+        <div id="char-va-grid" class="char-grid"></div>
+      </section>
+
+      <!-- Anime Appearances -->
+      <section id="char-media-section" class="catalog-section hidden">
+        <div class="section-header">
+          <h2>Anime Appearances</h2>
+        </div>
+        <div id="char-media-grid" class="card-grid"></div>
       </section>
     </section>
 
@@ -242,9 +304,14 @@
       <!-- Search & Encyclopedia Filters -->
       <section class="filters-bar" aria-label="Search and encyclopedia filters">
         <form id="search-form" class="search-row">
+          <select id="search-type" class="select-input search-type-select" aria-label="What to search">
+            <option value="both">Anime &amp; Characters</option>
+            <option value="anime">Anime Only</option>
+            <option value="characters">Characters Only</option>
+          </select>
           <div class="search-wrap">
-            <label for="search-input" class="sr-only">Search any anime in the encyclopedia</label>
-            <input id="search-input" class="search-input" type="search" placeholder="Search any anime (e.g. Death Note, Spirited Away, Jujutsu Kaisen)...">
+            <label for="search-input" class="sr-only">Search any anime or character</label>
+            <input id="search-input" class="search-input" type="search" placeholder="Search any anime or character (e.g. Itachi, Death Note, Gojo)...">
           </div>
           <button id="search-btn" class="btn btn-primary" type="submit">Search</button>
           <button id="random-anime-btn" class="btn btn-secondary random-btn" type="button">🎲 Random Anime</button>
@@ -290,10 +357,19 @@
         </div>
       </section>
 
-      <!-- Search / Encyclopedia Results -->
+      <!-- Character Search Results -->
+      <section id="char-results-section" class="catalog-section hidden">
+        <div class="section-header">
+          <h2>Character Wiki Results</h2>
+          <span id="char-results-count" class="count-pill">0</span>
+        </div>
+        <div id="char-results-grid" class="char-grid"></div>
+      </section>
+
+      <!-- Anime Search / Encyclopedia Results -->
       <section id="results-section" class="catalog-section hidden">
         <div class="section-header">
-          <h2 id="results-title">Encyclopedia Results</h2>
+          <h2 id="results-title">Anime Wiki Results</h2>
           <span id="results-count" class="count-pill">0</span>
         </div>
         <div id="results-grid" class="card-grid"></div>
@@ -304,8 +380,8 @@
 
       <!-- Empty State -->
       <div id="empty-state" class="status-card hidden">
-        <h2 id="empty-title">No anime found</h2>
-        <p id="empty-desc">Try a different title or reset your encyclopedia filters.</p>
+        <h2 id="empty-title">No matches found</h2>
+        <p id="empty-desc">Try a different anime or character name, or reset your filters.</p>
         <button id="reset-filters-btn" class="btn btn-primary" type="button">Reset Filters</button>
       </div>
 
@@ -400,7 +476,7 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <p><strong id="footer-site-name">Akairis</strong> — The Crimson Anime Encyclopedia.</p>
+      <p><strong id="footer-site-name">Akairis</strong> — The Crimson Anime &amp; Character Encyclopedia.</p>
       <button id="footer-credits-btn" class="text-link-btn" type="button">Sources &amp; Disclaimer</button>
     </div>
   </footer>
