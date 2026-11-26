@@ -50,13 +50,13 @@
     loadingState: document.getElementById('loading-state'),
 
     theaterSection: document.getElementById('theater-section'),
+    theaterBackBtn: document.getElementById('theater-back-btn'),
     theaterTypeBadge: document.getElementById('theater-type-badge'),
     theaterWatchedBadge: document.getElementById('theater-watched-badge'),
     theaterTitle: document.getElementById('theater-title'),
     theaterSubtitle: document.getElementById('theater-subtitle'),
     theaterDetailBtn: document.getElementById('theater-detail-btn'),
     theaterBookmarkBtn: document.getElementById('theater-bookmark-btn'),
-    closeTheaterBtn: document.getElementById('close-theater-btn'),
     theaterPlayerShell: document.getElementById('theater-player-shell'),
     playerStage: document.getElementById('player-stage'),
 
@@ -87,6 +87,8 @@
     episodePanel: document.getElementById('episode-panel'),
     seasonSelect: document.getElementById('season-select'),
     episodeList: document.getElementById('episode-list'),
+    theaterRelatedSection: document.getElementById('theater-related-section'),
+    theaterRelatedGrid: document.getElementById('theater-related-grid'),
 
     detailView: document.getElementById('detail-view'),
     detailBackBtn: document.getElementById('detail-back-btn'),
@@ -160,9 +162,6 @@
     takedownEmailLink: document.getElementById('takedown-email-link')
   };
 
-  /* -------------------------------------------------------
-     Storage & Intro Helpers
-     ------------------------------------------------------- */
   function readStorage(key, fallback) {
     try {
       var raw = localStorage.getItem(key);
@@ -216,9 +215,6 @@
     introTimer = setTimeout(dismissIntro, 2700);
   }
 
-  /* -------------------------------------------------------
-     Utility Helpers
-     ------------------------------------------------------- */
   function escapeHtml(str) {
     return String(str || '')
       .replace(/&/g, '&amp;')
@@ -328,9 +324,6 @@
     renderContinueWatching();
   }
 
-  /* -------------------------------------------------------
-     Load Config & Catalog
-     ------------------------------------------------------- */
   async function loadJsonFile(url) {
     var response = await fetch(url, { cache: 'no-store' });
     if (!response.ok) {
@@ -457,9 +450,6 @@
     }
   }
 
-  /* -------------------------------------------------------
-     Filtering, Sorting & Hero / Rows
-     ------------------------------------------------------- */
   function matchesCommonFilters(item) {
     if (!state.showMature && item.mature === true) return false;
     if (state.genre !== 'all' && (item.genres || []).indexOf(state.genre) === -1) return false;
@@ -535,7 +525,7 @@
       state.language === 'all' &&
       state.tag === 'all';
 
-    if (!isDefaultBrowse || state.detail) {
+    if (!isDefaultBrowse || state.detail || state.theater) {
       els.heroBanner.classList.add('hidden');
       return;
     }
@@ -619,12 +609,13 @@
 
     var isCredits = state.activeTab === 'credits';
     var isDetail = Boolean(state.detail) && !isCredits;
+    var isWatching = Boolean(state.theater) && !isCredits && !isDetail;
 
     els.creditsView.classList.toggle('hidden', !isCredits);
     els.detailView.classList.toggle('hidden', !isDetail);
-    els.browseView.classList.toggle('hidden', isCredits || isDetail);
+    els.browseView.classList.toggle('hidden', isCredits || isDetail || isWatching);
 
-    if (isCredits || isDetail) return;
+    if (isCredits || isDetail || isWatching) return;
 
     var movies = getAllowedMovies();
     var shows = getAllowedShows();
@@ -838,9 +829,33 @@
   }
 
   /* -------------------------------------------------------
+     Shared Related Titles Helper
+     ------------------------------------------------------- */
+  function fillRelatedGrid(sectionEl, gridEl, currentType, currentItem) {
+    var genres = currentItem.genres || [];
+    var pool = getAllowedMovies().map(function (m) { return { type: 'movie', item: m }; })
+      .concat(getAllowedShows().map(function (s) { return { type: 'show', item: s }; }))
+      .filter(function (entry) {
+        if (entry.type === currentType && entry.item.id === currentItem.id) return false;
+        if (!state.showMature && entry.item.mature) return false;
+        return (entry.item.genres || []).some(function (g) { return genres.indexOf(g) !== -1; });
+      });
+
+    gridEl.innerHTML = '';
+    pool.slice(0, 3).forEach(function (entry) {
+      gridEl.appendChild(entry.type === 'movie' ? createMovieCard(entry.item) : createShowCard(entry.item));
+    });
+    sectionEl.classList.toggle('hidden', pool.length === 0);
+  }
+
+  /* -------------------------------------------------------
      Title Detail View & Shareable Hash Links
      ------------------------------------------------------- */
   function openDetailView(type, id, updateHash) {
+    destroyActivePlayer();
+    state.theater = null;
+    els.theaterSection.classList.add('hidden');
+
     if (updateHash !== false) {
       var targetHash = '#' + type + '/' + id;
       if (window.location.hash !== targetHash) {
@@ -923,7 +938,7 @@
       els.detailEpisodesWrap.classList.add('hidden');
     }
 
-    renderRelatedTitles(d.type, item);
+    fillRelatedGrid(els.detailRelatedSection, els.detailRelatedGrid, d.type, item);
   }
 
   function renderDetailEpisodes(show) {
@@ -964,23 +979,6 @@
       });
       els.detailEpisodeList.appendChild(btn);
     });
-  }
-
-  function renderRelatedTitles(currentType, currentItem) {
-    var genres = currentItem.genres || [];
-    var pool = getAllowedMovies().map(function (m) { return { type: 'movie', item: m }; })
-      .concat(getAllowedShows().map(function (s) { return { type: 'show', item: s }; }))
-      .filter(function (entry) {
-        if (entry.type === currentType && entry.item.id === currentItem.id) return false;
-        if (!state.showMature && entry.item.mature) return false;
-        return (entry.item.genres || []).some(function (g) { return genres.indexOf(g) !== -1; });
-      });
-
-    els.detailRelatedGrid.innerHTML = '';
-    pool.slice(0, 3).forEach(function (entry) {
-      els.detailRelatedGrid.appendChild(entry.type === 'movie' ? createMovieCard(entry.item) : createShowCard(entry.item));
-    });
-    els.detailRelatedSection.classList.toggle('hidden', pool.length === 0);
   }
 
   function handleRouteFromHash() {
@@ -1030,6 +1028,8 @@
     destroyActivePlayer();
     state.theater = null;
     els.theaterSection.classList.add('hidden');
+    renderBrowse();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function openMovieInTheater(movieId) {
@@ -1037,10 +1037,14 @@
     if (!movie) return;
 
     state.detail = null;
-    switchTab(state.activeTab === 'credits' ? 'all' : state.activeTab);
+    if (state.activeTab === 'credits') {
+      state.activeTab = 'all';
+      els.navBtns.forEach(function (b) { b.classList.toggle('is-active', b.dataset.tab === 'all'); });
+    }
     state.theater = { type: 'movie', id: movie.id };
+    renderBrowse();
     renderTheater();
-    els.theaterSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function openShowInTheater(showId, seasonIndex, preferredTrack, preferredEp) {
@@ -1048,7 +1052,10 @@
     if (!show) return;
 
     state.detail = null;
-    switchTab(state.activeTab === 'credits' ? 'all' : state.activeTab);
+    if (state.activeTab === 'credits') {
+      state.activeTab = 'all';
+      els.navBtns.forEach(function (b) { b.classList.toggle('is-active', b.dataset.tab === 'all'); });
+    }
 
     var sIdx = typeof seasonIndex === 'number' && show.seasons[seasonIndex] ? seasonIndex : 0;
     var season = show.seasons[sIdx];
@@ -1065,8 +1072,9 @@
       notice: ''
     };
 
+    renderBrowse();
     renderTheater();
-    els.theaterSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function chooseAvailableTrack(season, preferred) {
@@ -1113,6 +1121,7 @@
 
       updateTheaterBookmarkBtn();
       renderPlayerPreview(movie.videoId, movie.title, movie.embeddable !== false);
+      fillRelatedGrid(els.theaterRelatedSection, els.theaterRelatedGrid, 'movie', movie);
 
       recordHistory({
         type: 'movie',
@@ -1205,6 +1214,7 @@
 
     updateTheaterBookmarkBtn();
     renderPlayerPreview(currentEp.videoId, show.title + ' Episode ' + currentEp.ep, currentEp.embeddable !== false);
+    fillRelatedGrid(els.theaterRelatedSection, els.theaterRelatedGrid, 'show', show);
 
     recordHistory({
       type: 'show',
@@ -1506,10 +1516,10 @@
     }
   }
 
-  /* -------------------------------------------------------
-     Navigation & Events
-     ------------------------------------------------------- */
   function switchTab(tab) {
+    destroyActivePlayer();
+    state.theater = null;
+    els.theaterSection.classList.add('hidden');
     state.activeTab = tab;
     state.detail = null;
     if (window.location.hash && tab !== 'credits') {
@@ -1518,9 +1528,6 @@
     els.navBtns.forEach(function (btn) {
       btn.classList.toggle('is-active', btn.dataset.tab === tab);
     });
-    if (tab === 'credits') {
-      closeTheater();
-    }
     renderBrowse();
   }
 
@@ -1546,7 +1553,7 @@
     });
 
     els.retryLoadBtn.addEventListener('click', initData);
-    els.closeTheaterBtn.addEventListener('click', closeTheater);
+    els.theaterBackBtn.addEventListener('click', closeTheater);
 
     els.theaterDetailBtn.addEventListener('click', function () {
       if (!state.theater) return;
@@ -1593,7 +1600,6 @@
       renderTheater();
     });
 
-    /* Custom Control Bar Listeners */
     els.ccPlayBtn.addEventListener('click', function () {
       var p = state.ytPlayerInstance;
       if (!p || typeof p.getPlayerState !== 'function') return;
@@ -1648,7 +1654,6 @@
 
     els.ccFullscreenBtn.addEventListener('click', toggleFullscreenShell);
 
-    /* Detail View Listeners */
     els.detailBackBtn.addEventListener('click', function () {
       closeDetailView(true);
     });
@@ -1685,7 +1690,6 @@
       renderDetailView();
     });
 
-    /* Search, Filters, Sort & Random Pick */
     els.searchInput.addEventListener('input', function () {
       state.search = els.searchInput.value;
       renderBrowse();
