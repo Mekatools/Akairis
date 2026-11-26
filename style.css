@@ -2,22 +2,26 @@
    AKAIRIS THEME VARIABLES — Edit colors & fonts here!
    ========================================================= */
 :root {
-  --bg-black: #070709;
-  --bg-surface: #111015;
-  --bg-elevated: #18161d;
-  --bg-card: #141219;
+  --bg-canvas: #0d111a;
+  --bg-surface: #141b29;
+  --bg-elevated: #1c263a;
+  --bg-card: #151d2c;
+  --bg-input: #0b0f18;
 
-  --crimson: #c91c28;
-  --crimson-bright: #e11d48;
-  --crimson-soft: rgba(201, 28, 40, 0.16);
-  --crimson-glow: rgba(225, 29, 72, 0.35);
+  --accent-primary: #ff5a36;
+  --accent-primary-hover: #ff784f;
+  --accent-primary-soft: rgba(255, 90, 54, 0.16);
+  --accent-gold: #fbbf24;
+  --accent-wiki: #38bdf8;
+  --accent-wiki-soft: rgba(56, 189, 248, 0.14);
 
-  --text-primary: #f4f2f6;
-  --text-secondary: #b7b1be;
-  --text-muted: #7f7987;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #8b9bb4;
 
-  --border-subtle: rgba(255, 255, 255, 0.09);
-  --border-crimson: rgba(225, 29, 72, 0.45);
+  --border-subtle: rgba(148, 163, 184, 0.16);
+  --border-accent: rgba(56, 189, 248, 0.42);
+  --shadow-glow: rgba(255, 90, 54, 0.34);
 
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-display: "Trebuchet MS", system-ui, -apple-system, sans-serif;
@@ -26,6 +30,28 @@
   --radius-md: 12px;
   --radius-lg: 18px;
   --transition-fast: 180ms ease;
+}
+
+/* Optional Clean Wiki Paper Light Mode */
+html[data-theme="light"] {
+  --bg-canvas: #f3f6fb;
+  --bg-surface: #ffffff;
+  --bg-elevated: #e8eef7;
+  --bg-card: #ffffff;
+  --bg-input: #f8fafc;
+
+  --accent-primary: #ea4c2b;
+  --accent-primary-hover: #d93d1d;
+  --accent-primary-soft: rgba(234, 76, 43, 0.11);
+  --accent-wiki: #0284c7;
+  --accent-wiki-soft: rgba(2, 132, 199, 0.1);
+
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+
+  --border-subtle: rgba(15, 23, 42, 0.12);
+  --border-accent: rgba(2, 132, 199, 0.35);
 }
 
 /* =========================================================
@@ -42,11 +68,12 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
-  background-color: var(--bg-black);
+  background-color: var(--bg-canvas);
   color: var(--text-primary);
   font-family: var(--font-sans);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 220ms ease, color 220ms ease;
 }
 
 img {
@@ -85,7 +112,7 @@ textarea {
 }
 
 /* =========================================================
-   SUBTLE DRIFTING RED-CLOUD SVG BACKGROUND
+   AMBIENT TWILIGHT BACKGROUND
    ========================================================= */
 .cloud-bg {
   position: fixed;
@@ -93,21 +120,17 @@ textarea {
   z-index: 0;
   pointer-events: none;
   background-image:
-    radial-gradient(circle at 18% 12%, rgba(201, 28, 40, 0.12), transparent 45%),
-    radial-gradient(circle at 82% 80%, rgba(225, 29, 72, 0.08), transparent 48%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='160' viewBox='0 0 220 160'%3E%3Cg fill='%2399111d' fill-opacity='0.10' stroke='%23e11d48' stroke-opacity='0.24' stroke-width='1.8'%3E%3Cpath d='M44 74c-11 0-19-7-19-16s7-15 16-16c3-11 14-18 27-18 14 0 25 8 28 20 9 1 16 8 16 17 0 9-8 16-19 16H44zm14-27c-5 0-9 4-9 8s4 8 9 8'/%3E%3Cpath d='M146 136c-10 0-18-6-18-14s6-13 14-14c3-9 12-16 23-16 12 0 22 7 25 17 8 1 14 7 14 15 0 8-7 14-17 14h-41zm12-23c-4 0-8 3-8 7s4 7 8 7'/%3E%3C/g%3E%3C/svg%3E");
-  background-repeat: no-repeat, no-repeat, repeat;
-  background-size: auto, auto, 220px 160px;
-  animation: cloudDrift 55s linear infinite;
+    radial-gradient(circle at 12% 10%, rgba(255, 90, 54, 0.12), transparent 42%),
+    radial-gradient(circle at 86% 18%, rgba(56, 189, 248, 0.11), transparent 44%),
+    radial-gradient(circle at 50% 90%, rgba(251, 191, 36, 0.06), transparent 48%);
 }
 
-@keyframes cloudDrift {
-  from { background-position: 0 0, 0 0, 0 0; }
-  to { background-position: 0 0, 0 0, 220px -160px; }
+html[data-theme="light"] .cloud-bg {
+  opacity: 0.45;
 }
 
 /* =========================================================
-   OPENING CRIMSON EYE LOADER & IN-PAGE EYE LOADER
+   CUSTOM 60FPS SMOOTH PRISM EYE (Opens -> Spins -> Closes to Reveal)
    ========================================================= */
 .skip-intro .intro-overlay {
   display: none !important;
@@ -121,13 +144,12 @@ textarea {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at center, #180408 0%, #050507 65%);
-  transition: opacity 0.45s ease, transform 0.45s ease, visibility 0.45s ease;
+  background: radial-gradient(circle at center, #131b2e 0%, #090d16 70%);
+  transition: opacity 0.34s ease 0.24s, visibility 0.34s ease 0.24s;
 }
 
 .intro-overlay.is-leaving {
   opacity: 0;
-  transform: scale(1.14);
   visibility: hidden;
   pointer-events: none;
 }
@@ -140,20 +162,85 @@ textarea {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   text-align: center;
   padding: 0 20px;
 }
 
-.eye-svg {
-  filter: drop-shadow(0 0 22px var(--crimson-glow));
-  transform-origin: center;
-  animation: eyeOpen 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+.akairis-eye-frame {
+  position: relative;
+  width: 260px;
+  height: 150px;
+  overflow: hidden;
+  filter: drop-shadow(0 0 26px rgba(56, 189, 248, 0.25)) drop-shadow(0 0 18px var(--shadow-glow));
 }
 
-.tomoe-ring {
-  transform-origin: 130px 80px;
-  animation: spinForever 1.7s linear infinite;
+.eye-sclera {
+  position: absolute;
+  inset: 10px 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, #1b2438 0%, #090d16 75%);
+}
+
+.iris-layer {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 148px;
+  height: 148px;
+  margin-left: -74px;
+  margin-top: -74px;
+  will-change: transform;
+}
+
+.iris-layer-outer {
+  animation: spinCW 3s linear infinite;
+}
+
+.iris-layer-inner {
+  animation: spinCCW 4.2s linear infinite;
+}
+
+/* Eyelid Shutters: start shut, open smoothly, then close shut on .is-leaving */
+.eyelid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 52%;
+  background: #090d16;
+  z-index: 4;
+  will-change: transform;
+}
+
+.eyelid-top {
+  top: 0;
+  transform-origin: top center;
+  border-bottom: 2px solid #38bdf8;
+  animation: lidOpenTop 0.52s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.eyelid-bottom {
+  bottom: 0;
+  transform-origin: bottom center;
+  border-top: 2px solid #ff5a36;
+  animation: lidOpenBottom 0.52s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.intro-overlay.is-leaving .eyelid-top {
+  animation: lidCloseTop 0.24s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.intro-overlay.is-leaving .eyelid-bottom {
+  animation: lidCloseBottom 0.24s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.eye-rim-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  pointer-events: none;
 }
 
 .intro-wordmark {
@@ -162,13 +249,13 @@ textarea {
   font-size: 1.4rem;
   font-weight: 700;
   letter-spacing: 0.38em;
-  color: var(--text-primary);
+  color: #f8fafc;
 }
 
 .intro-loading-text {
   margin: 0;
   font-size: 0.92rem;
-  color: #ff9eb0;
+  color: #7dd3fc;
   min-height: 1.4em;
 }
 
@@ -177,26 +264,26 @@ textarea {
   bottom: 28px;
   padding: 8px 18px;
   border-radius: 999px;
-  border: 1px solid var(--border-subtle);
-  background: rgba(20, 18, 25, 0.88);
-  color: var(--text-secondary);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(20, 27, 41, 0.88);
+  color: #cbd5e1;
   cursor: pointer;
   font-size: 0.88rem;
   transition: border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .skip-intro-btn:hover {
-  border-color: var(--crimson-bright);
-  color: var(--text-primary);
+  border-color: #38bdf8;
+  color: #ffffff;
 }
 
-/* In-page Spinning Crimson Eye Loader */
+/* In-Page Smooth Spinning Prism Eye Loader */
 .eye-loader {
   margin: 36px auto;
   padding: 36px 20px;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-crimson);
-  background: radial-gradient(circle at center, rgba(201, 28, 40, 0.12), var(--bg-surface) 70%);
+  border: 1px solid var(--border-accent);
+  background: radial-gradient(circle at center, var(--accent-wiki-soft), var(--bg-surface) 72%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -205,30 +292,64 @@ textarea {
   text-align: center;
 }
 
-.mini-eye-svg {
-  filter: drop-shadow(0 0 18px var(--crimson-glow));
+.mini-eye-frame {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  filter: drop-shadow(0 0 14px rgba(56, 189, 248, 0.28));
 }
 
-.mini-tomoe-ring {
-  transform-origin: 60px 60px;
-  animation: spinForever 1.4s linear infinite;
+.mini-iris-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  will-change: transform;
+}
+
+.mini-iris-outer {
+  animation: spinCW 2.4s linear infinite;
+}
+
+.mini-iris-inner {
+  animation: spinCCW 3.2s linear infinite;
 }
 
 .eye-loader-text {
   margin: 0;
   font-size: 0.98rem;
-  font-weight: 500;
-  color: #ffb3c1;
+  font-weight: 600;
+  color: var(--accent-wiki);
 }
 
-@keyframes eyeOpen {
-  0% { opacity: 0.2; transform: scaleY(0.06) scaleX(0.9); }
-  100% { opacity: 1; transform: scaleY(1) scaleX(1); }
-}
-
-@keyframes spinForever {
+@keyframes spinCW {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+@keyframes spinCCW {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+@keyframes lidOpenTop {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(0); }
+}
+
+@keyframes lidOpenBottom {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(0); }
+}
+
+@keyframes lidCloseTop {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+@keyframes lidCloseBottom {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
 }
 
 /* =========================================================
@@ -245,9 +366,13 @@ textarea {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(7, 7, 9, 0.92);
-  backdrop-filter: blur(10px);
+  background: rgba(13, 17, 26, 0.92);
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-subtle);
+}
+
+html[data-theme="light"] .site-header {
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .header-inner {
@@ -285,6 +410,13 @@ textarea {
   color: var(--text-muted);
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .main-nav {
   display: flex;
   gap: 8px;
@@ -298,22 +430,39 @@ textarea {
   border: 1px solid var(--border-subtle);
   background: var(--bg-surface);
   color: var(--text-secondary);
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.88rem;
+  font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
   transition: all var(--transition-fast);
 }
 
 .nav-btn:hover {
-  border-color: var(--border-crimson);
+  border-color: var(--accent-wiki);
   color: var(--text-primary);
 }
 
 .nav-btn.is-active {
-  background: var(--crimson);
-  border-color: var(--crimson-bright);
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
   color: #ffffff;
+}
+
+.theme-toggle-btn {
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+}
+
+.theme-toggle-btn:hover {
+  border-color: var(--accent-wiki);
 }
 
 /* =========================================================
@@ -340,13 +489,13 @@ textarea {
 }
 
 .btn-primary {
-  background: var(--crimson);
-  border-color: var(--crimson-bright);
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
   color: #ffffff;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--crimson-bright);
+  background: var(--accent-primary-hover);
 }
 
 .btn-secondary {
@@ -356,7 +505,7 @@ textarea {
 }
 
 .btn-secondary:hover:not(:disabled) {
-  border-color: var(--border-crimson);
+  border-color: var(--accent-wiki);
 }
 
 .btn-ghost {
@@ -366,7 +515,7 @@ textarea {
 }
 
 .btn-ghost:hover:not(:disabled) {
-  border-color: var(--border-crimson);
+  border-color: var(--accent-wiki);
   color: var(--text-primary);
 }
 
@@ -386,15 +535,15 @@ textarea {
 }
 
 .cc-btn:hover {
-  border-color: var(--crimson-bright);
-  background: var(--crimson-soft);
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-soft);
 }
 
 .text-link-btn {
   background: none;
   border: none;
   padding: 4px 0;
-  color: var(--crimson-bright);
+  color: var(--accent-wiki);
   font-size: 0.88rem;
   font-weight: 600;
   cursor: pointer;
@@ -422,8 +571,8 @@ textarea {
 }
 
 .status-card.is-error {
-  border-color: var(--crimson-bright);
-  background: rgba(201, 28, 40, 0.1);
+  border-color: var(--accent-primary);
+  background: var(--accent-primary-soft);
 }
 
 .status-card h2 {
@@ -444,11 +593,11 @@ textarea {
   min-height: 280px;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  border: 1px solid var(--border-crimson);
+  border: 1px solid var(--border-accent);
   margin-bottom: 24px;
   display: flex;
   align-items: flex-end;
-  background: #0d090c;
+  background: #0b0f18;
 }
 
 .hero-bg-img {
@@ -457,15 +606,15 @@ textarea {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.44;
+  opacity: 0.48;
 }
 
 .hero-gradient {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(7, 7, 9, 0.96) 0%, rgba(7, 7, 9, 0.78) 55%, rgba(7, 7, 9, 0.35) 100%),
-    linear-gradient(0deg, rgba(7, 7, 9, 0.95) 0%, transparent 65%);
+    linear-gradient(90deg, rgba(13, 17, 26, 0.96) 0%, rgba(13, 17, 26, 0.78) 56%, rgba(13, 17, 26, 0.3) 100%),
+    linear-gradient(0deg, rgba(13, 17, 26, 0.95) 0%, transparent 65%);
 }
 
 .hero-content {
@@ -479,18 +628,19 @@ textarea {
   margin: 10px 0 6px;
   font-size: clamp(1.45rem, 3.6vw, 2.15rem);
   line-height: 1.18;
+  color: #f8fafc;
 }
 
 .hero-meta {
   margin: 0 0 8px;
   font-size: 0.88rem;
-  color: var(--text-secondary);
+  color: #cbd5e1;
 }
 
 .hero-synopsis {
   margin: 0 0 16px;
   font-size: 0.94rem;
-  color: var(--text-secondary);
+  color: #cbd5e1;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -537,7 +687,7 @@ textarea {
   padding: 10px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
-  background: var(--bg-black);
+  background: var(--bg-input);
   color: var(--text-primary);
   font-size: 0.92rem;
 }
@@ -546,7 +696,7 @@ textarea {
 .select-input:focus,
 .tracker-notes:focus {
   outline: none;
-  border-color: var(--crimson-bright);
+  border-color: var(--accent-wiki);
 }
 
 .filter-controls {
@@ -562,14 +712,14 @@ textarea {
   padding: 9px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
-  background: var(--bg-black);
+  background: var(--bg-input);
   color: var(--text-secondary);
   font-size: 0.88rem;
   cursor: pointer;
 }
 
 .mature-toggle input {
-  accent-color: var(--crimson-bright);
+  accent-color: var(--accent-primary);
   width: 16px;
   height: 16px;
 }
@@ -598,7 +748,7 @@ textarea {
 .section-header h2 {
   margin: 0;
   font-size: 1.18rem;
-  border-left: 3px solid var(--crimson-bright);
+  border-left: 3px solid var(--accent-primary);
   padding-left: 10px;
 }
 
@@ -632,14 +782,14 @@ textarea {
 
 .anime-card:hover {
   transform: translateY(-3px);
-  border-color: var(--border-crimson);
+  border-color: var(--accent-wiki);
 }
 
 .anime-poster-wrap {
   position: relative;
   width: 100%;
   aspect-ratio: 2 / 3;
-  background: #0a090d;
+  background: var(--bg-elevated);
   overflow: hidden;
 }
 
@@ -655,9 +805,9 @@ textarea {
   left: 8px;
   padding: 2px 8px;
   border-radius: 6px;
-  background: rgba(7, 7, 9, 0.86);
-  border: 1px solid var(--border-crimson);
-  color: #ffffff;
+  background: rgba(13, 17, 26, 0.86);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #f8fafc;
   font-size: 0.72rem;
   font-weight: 600;
 }
@@ -668,8 +818,8 @@ textarea {
   right: 8px;
   padding: 2px 8px;
   border-radius: 6px;
-  background: rgba(7, 7, 9, 0.88);
-  color: #fde68a;
+  background: rgba(13, 17, 26, 0.9);
+  color: #fbbf24;
   font-size: 0.74rem;
   font-weight: 700;
 }
@@ -680,7 +830,7 @@ textarea {
   left: 8px;
   padding: 2px 8px;
   border-radius: 6px;
-  background: var(--crimson);
+  background: var(--accent-primary);
   color: #ffffff;
   font-size: 0.7rem;
   font-weight: 700;
@@ -727,10 +877,16 @@ textarea {
   color: var(--text-secondary);
 }
 
-.badge-crimson {
-  background: var(--crimson-soft);
-  border-color: var(--border-crimson);
-  color: #ff8fa3;
+.badge-coral {
+  background: var(--accent-primary-soft);
+  border-color: rgba(255, 90, 54, 0.45);
+  color: var(--accent-primary);
+}
+
+.badge-sky {
+  background: var(--accent-wiki-soft);
+  border-color: var(--border-accent);
+  color: var(--accent-wiki);
 }
 
 .card-chips {
@@ -768,7 +924,7 @@ textarea {
 
 .wiki-share-status {
   font-size: 0.84rem;
-  color: #86efac;
+  color: #22c55e;
   font-weight: 600;
 }
 
@@ -783,14 +939,14 @@ textarea {
 .wiki-banner-wrap {
   position: relative;
   height: 170px;
-  background: #14080c;
+  background: #0d1322;
 }
 
 .wiki-banner-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  opacity: 0.55;
+  opacity: 0.6;
 }
 
 .wiki-banner-fade {
@@ -825,15 +981,15 @@ textarea {
   aspect-ratio: 2 / 3;
   object-fit: cover;
   border-radius: var(--radius-md);
-  border: 2px solid var(--border-crimson);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.7);
-  background: #0a090d;
+  border: 2px solid var(--accent-wiki);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  background: var(--bg-elevated);
 }
 
 .wiki-infobox {
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
-  background: var(--bg-black);
+  background: var(--bg-input);
   padding: 12px 14px;
   font-size: 0.85rem;
 }
@@ -878,9 +1034,9 @@ textarea {
   margin: 0 0 12px;
   padding: 6px 12px;
   border-radius: var(--radius-sm);
-  background: var(--crimson-soft);
-  border: 1px solid var(--border-crimson);
-  color: #ffd0da;
+  background: var(--accent-wiki-soft);
+  border: 1px solid var(--border-accent);
+  color: var(--accent-wiki);
   font-size: 0.86rem;
   font-weight: 600;
 }
@@ -892,7 +1048,7 @@ textarea {
 .wiki-section-block h2 {
   margin: 0 0 8px;
   font-size: 1.05rem;
-  color: #ff9eb0;
+  color: var(--accent-wiki);
 }
 
 .wiki-synopsis {
@@ -907,15 +1063,16 @@ textarea {
   padding: 2px 10px;
   margin: 2px 0;
   border-radius: 6px;
-  border: 1px dashed var(--border-crimson);
-  background: var(--crimson-soft);
-  color: #ffd0da;
+  border: 1px dashed var(--accent-primary);
+  background: var(--accent-primary-soft);
+  color: var(--accent-primary);
   font-size: 0.84rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .spoiler-revealed {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-elevated);
   padding: 2px 6px;
   border-radius: 4px;
   color: var(--text-primary);
@@ -926,8 +1083,8 @@ textarea {
   margin-top: 18px;
   padding: 14px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border-crimson);
-  background: rgba(14, 11, 16, 0.9);
+  border: 1px solid var(--border-accent);
+  background: var(--bg-elevated);
 }
 
 .tracker-header {
@@ -945,7 +1102,8 @@ textarea {
 
 .tracker-save-status {
   font-size: 0.78rem;
-  color: #86efac;
+  color: #22c55e;
+  font-weight: 600;
 }
 
 .tracker-controls {
@@ -963,7 +1121,7 @@ textarea {
   padding: 4px 8px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
-  background: var(--bg-black);
+  background: var(--bg-input);
 }
 
 .tracker-ep-count {
@@ -976,7 +1134,7 @@ textarea {
   padding: 9px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-subtle);
-  background: var(--bg-black);
+  background: var(--bg-input);
   resize: vertical;
   font-size: 0.88rem;
 }
@@ -1002,7 +1160,7 @@ textarea {
 }
 
 .char-card:hover {
-  border-color: var(--crimson-bright);
+  border-color: var(--accent-wiki);
   transform: translateY(-2px);
 }
 
@@ -1021,7 +1179,7 @@ textarea {
   object-fit: cover;
   border-radius: 8px;
   flex-shrink: 0;
-  background: #0a090d;
+  background: var(--bg-elevated);
 }
 
 .char-info h3 {
@@ -1058,7 +1216,7 @@ textarea {
 }
 
 .airing-card:hover {
-  border-color: var(--crimson-bright);
+  border-color: var(--accent-wiki);
 }
 
 .airing-card img {
@@ -1077,7 +1235,8 @@ textarea {
 .airing-info p {
   margin: 0;
   font-size: 0.8rem;
-  color: #ff9eb0;
+  color: var(--accent-wiki);
+  font-weight: 600;
 }
 
 .mylist-tabs {
@@ -1123,7 +1282,7 @@ textarea {
   padding: 16px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-subtle);
-  background: var(--bg-black);
+  background: var(--bg-input);
 }
 
 .about-box h2 {
@@ -1142,8 +1301,9 @@ textarea {
   margin-top: 8px;
 }
 
+.sky-link,
 .crimson-link {
-  color: #ff6b81;
+  color: var(--accent-wiki);
   font-weight: 600;
 }
 
@@ -1152,7 +1312,7 @@ textarea {
    ========================================================= */
 .site-footer {
   border-top: 1px solid var(--border-subtle);
-  background: rgba(7, 7, 9, 0.92);
+  background: var(--bg-surface);
   padding: 18px 0;
 }
 
@@ -1212,10 +1372,12 @@ textarea {
    ACCESSIBILITY: REDUCED MOTION
    ========================================================= */
 @media (prefers-reduced-motion: reduce) {
-  .cloud-bg,
-  .eye-svg,
-  .tomoe-ring,
-  .mini-tomoe-ring {
+  .iris-layer-outer,
+  .iris-layer-inner,
+  .mini-iris-outer,
+  .mini-iris-inner,
+  .eyelid-top,
+  .eyelid-bottom {
     animation: none !important;
   }
 
