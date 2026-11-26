@@ -1,83 +1,16 @@
 {
   "siteName": "Akairis",
-  "tagline": "Curated Official Cinema & Anime Showcase",
+  "tagline": "The Crimson Anime Encyclopedia",
   "disclaimer": {
     "owner": "Akairis Curators",
     "takedownEmail": "takedown@example.com",
-    "statement": "Akairis is an independent showcase directory and is not affiliated with, endorsed by, or connected to YouTube, Google, Shemaroo, Muse Communication, Blender Foundation, or any film/animation studio. All videos play through YouTube's official privacy-enhanced player from their verified official rights-holder channels. No video files are hosted on this site."
+    "statement": "Akairis is an independent anime encyclopedia and personal tracking site. It is not affiliated with any animation studio or publisher. All anime titles, artwork, and synopses belong to their respective creators and copyright holders."
   },
-  "allowlistChannels": [
+  "dataSources": [
     {
-      "id": "UCF1JIbMUs6uqoZEY1Haw0GQ",
-      "name": "Shemaroo",
-      "url": "https://www.youtube.com/@shemaroo",
-      "type": "official-hindi-movies"
-    },
-    {
-      "id": "UCU3VPgbc39AJ1p7MeHA5U8A",
-      "name": "Shemaroo Movies",
-      "url": "https://www.youtube.com/@shemaroomovies",
-      "type": "official-hindi-movies"
-    },
-    {
-      "id": "UCYYhAzgWuxPauRXdPpLAX3Q",
-      "name": "Muse India",
-      "url": "https://www.youtube.com/@MuseIndiaChannel",
-      "type": "official-anime"
-    },
-    {
-      "id": "UCGbshtvS9t-8CW11W7TooQg",
-      "name": "Muse Asia",
-      "url": "https://www.youtube.com/@MuseAsia",
-      "type": "official-anime"
-    },
-    {
-      "id": "UC0wNSTMWIL3qaorLx0jie6A",
-      "name": "Ani-One Asia",
-      "url": "https://www.youtube.com/@AniOneAsia",
-      "type": "official-anime"
-    },
-    {
-      "id": "UCSMOQeBJ2RAnuFungnQOxLg",
-      "name": "Blender",
-      "url": "https://www.youtube.com/@BlenderFoundation",
-      "type": "open-license"
-    },
-    {
-      "id": "UC-lUDsUcjn1H1zU8y6gdtRQ",
-      "name": "Timeless Classic Movies",
-      "url": "https://www.youtube.com/channel/UC-lUDsUcjn1H1zU8y6gdtRQ",
-      "type": "public-domain-movies"
-    }
-  ],
-  "syncShows": [
-    {
-      "showId": "classroom-of-the-elite",
-      "title": "Classroom of the Elite",
-      "seasonNumber": 1,
-      "subPlaylistId": "PLwLSw1_eDZl37ONxLQx-mIAJu3hdX-brM",
-      "hiPlaylistId": "PLpm1VVK4UL17x8mbfPIYWRjkCTlrqEWW5"
-    },
-    {
-      "showId": "parallel-world-pharmacy",
-      "title": "Parallel World Pharmacy",
-      "seasonNumber": 1,
-      "subPlaylistId": "PLwLSw1_eDZl1ZHXQDzK5Qit6jqLTNzjZ3",
-      "hiPlaylistId": null
-    },
-    {
-      "showId": "that-time-i-got-reincarnated-as-a-slime",
-      "title": "That Time I Got Reincarnated as a Slime",
-      "seasonNumber": 1,
-      "subPlaylistId": "PLpm1VVK4UL15OT-nLEQsG_0Ri6Pgy3PCe",
-      "hiPlaylistId": "PLpm1VVK4UL17sQvpyw2ou6aG43s3NU09W"
-    },
-    {
-      "showId": "one-punch-man",
-      "title": "One-Punch Man",
-      "seasonNumber": 1,
-      "subPlaylistId": "PLpm1VVK4UL16FvVk0QOffUwXX_vaHVjZP",
-      "hiPlaylistId": null
+      "name": "AniList Open GraphQL API",
+      "url": "https://anilist.co",
+      "role": "Anime metadata, characters, relations, airing schedules & artwork"
     }
   ]
 }
