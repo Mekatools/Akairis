@@ -2,6 +2,48 @@
   "updatedAt": "2026-11-26T00:00:00Z",
   "movies": [
     {
+      "id": "manorama-six-feet-under-2007",
+      "title": "Manorama Six Feet Under",
+      "year": 2007,
+      "duration": "2h 10m",
+      "genres": ["Mystery", "Thriller", "Crime"],
+      "language": "Hindi",
+      "tags": ["bollywood", "live-action", "noir"],
+      "mature": false,
+      "synopsis": "A suspended small-town engineer and aspiring detective writer is hired to spy on a politician, pulling him into a web of lies and murder. Starring Abhay Deol, Raima Sen, and Nawazuddin Siddiqui.",
+      "channelId": "UCF1JIbMUs6uqoZEY1Haw0GQ",
+      "channelName": "Shemaroo",
+      "videoId": "K6naZQwvWVM"
+    },
+    {
+      "id": "red-letter-2025",
+      "title": "Red Letter",
+      "year": 2025,
+      "duration": "35m",
+      "genres": ["Suspense", "Thriller", "Drama"],
+      "language": "Hindi",
+      "tags": ["bollywood", "live-action", "cannes-selection"],
+      "mature": false,
+      "synopsis": "A man's haunting psychological nightmares begin matching reality as a hidden letter from 1890 uncovers a dark truth. Officially screened at the Cannes Film Festival 2025.",
+      "channelId": "UCF1JIbMUs6uqoZEY1Haw0GQ",
+      "channelName": "Shemaroo",
+      "videoId": "3f0KA5FqQZI"
+    },
+    {
+      "id": "tears-of-steel-2012",
+      "title": "Tears of Steel",
+      "year": 2012,
+      "duration": "12m",
+      "genres": ["Sci-Fi", "Action"],
+      "language": "English",
+      "tags": ["live-action", "open-license", "vfx"],
+      "mature": false,
+      "synopsis": "In a future Amsterdam, a group of warriors and scientists reunite an old hero with technology to stop destructive robots.",
+      "channelId": "UCSMOQeBJ2RAnuFungnQOxLg",
+      "channelName": "Blender",
+      "videoId": "R6MlUcmOul8"
+    },
+    {
       "id": "sintel-2010",
       "title": "Sintel",
       "year": 2010,
@@ -14,20 +56,6 @@
       "channelId": "UCSMOQeBJ2RAnuFungnQOxLg",
       "channelName": "Blender",
       "videoId": "eRsGyueVLvQ"
-    },
-    {
-      "id": "tears-of-steel-2012",
-      "title": "Tears of Steel",
-      "year": 2012,
-      "duration": "12m",
-      "genres": ["Sci-Fi", "Action"],
-      "language": "English",
-      "tags": ["open-license", "vfx"],
-      "mature": false,
-      "synopsis": "In a future Amsterdam, a group of warriors and scientists reunite an old hero with technology to stop destructive robots.",
-      "channelId": "UCSMOQeBJ2RAnuFungnQOxLg",
-      "channelName": "Blender",
-      "videoId": "R6MlUcmOul8"
     },
     {
       "id": "big-buck-bunny-2008",
@@ -122,6 +150,114 @@
                   "ep": 2,
                   "title": "Master and Apprentice",
                   "videoId": "o3K91l3FY1I",
+                  "duration": "24m"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "dandadan",
+      "title": "DAN DA DAN",
+      "year": 2024,
+      "genres": ["Action", "Sci-Fi", "Supernatural", "Comedy"],
+      "tags": ["anime-series"],
+      "mature": false,
+      "synopsis": "Momo believes in ghosts but not aliens, while Okarun believes in aliens but not ghosts. Their bet spirals into wild supernatural battles.",
+      "seasons": [
+        {
+          "seasonNumber": 1,
+          "title": "Season 1",
+          "tracks": {
+            "sub": {
+              "label": "Sub / EN",
+              "channelId": "UCGbshtvS9t-8CW11W7TooQg",
+              "channelName": "Muse Asia",
+              "episodes": [
+                {
+                  "ep": 2,
+                  "title": "That's a Space Alien, Ain't It?!",
+                  "videoId": "8MJJoMF2PiM",
+                  "duration": "24m"
+                },
+                {
+                  "ep": 3,
+                  "title": "It's a Granny vs. Granny Clash!",
+                  "videoId": "aGiE_i39u8k",
+                  "duration": "24m"
+                },
+                {
+                  "ep": 12,
+                  "title": "Let's Go to the Cursed House",
+                  "videoId": "RLSGhez3r0g",
+                  "duration": "24m"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "one-punch-man",
+      "title": "One-Punch Man",
+      "year": 2015,
+      "genres": ["Action", "Comedy", "Superhero"],
+      "tags": ["anime-series"],
+      "mature": false,
+      "synopsis": "Saitama is a hero for fun who trained so hard he can defeat any opponent with a single punch—leaving him bored in a world full of monsters.",
+      "seasons": [
+        {
+          "seasonNumber": 3,
+          "title": "Season 3",
+          "tracks": {
+            "sub": {
+              "label": "Sub / EN",
+              "channelId": "UCGbshtvS9t-8CW11W7TooQg",
+              "channelName": "Muse Asia",
+              "episodes": [
+                {
+                  "ep": 1,
+                  "title": "Episode 01",
+                  "videoId": "MdYHuPORi6g",
+                  "duration": "24m"
+                },
+                {
+                  "ep": 6,
+                  "title": "Episode 06",
+                  "videoId": "E4f53rV5xko",
+                  "duration": "24m"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "mob-psycho-100",
+      "title": "Mob Psycho 100",
+      "year": 2022,
+      "genres": ["Action", "Supernatural", "Comedy"],
+      "tags": ["anime-series"],
+      "mature": false,
+      "synopsis": "Shigeo 'Mob' Kageyama is a quiet middle schooler with immense psychic powers, trying to live a normal life while working for spirit medium Reigen.",
+      "seasons": [
+        {
+          "seasonNumber": 3,
+          "title": "Season 3",
+          "tracks": {
+            "sub": {
+              "label": "Sub / EN",
+              "channelId": "UCYYhAzgWuxPauRXdPpLAX3Q",
+              "channelName": "Muse India",
+              "episodes": [
+                {
+                  "ep": 1,
+                  "title": "Future ~Career Paths~ (S3E01)",
+                  "videoId": "2cTmkKLiSvI",
                   "duration": "24m"
                 }
               ]
