@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Akairis — Official Cinema &amp; Anime Showcase</title>
-  <meta name="description" content="Akairis is a curated, mobile-first showcase of official Hindi &amp; English movies and anime series.">
+  <title>Akairis — The Crimson Anime Encyclopedia</title>
+  <meta name="description" content="Akairis is a dark crimson anime encyclopedia featuring full anime info, characters, airing countdowns, sequels, and personal tracking.">
   <meta name="theme-color" content="#070709">
-  <meta property="og:title" content="Akairis — Official Cinema &amp; Anime Showcase">
-  <meta property="og:description" content="Watch curated official movies and anime episodes in a dark crimson theater experience.">
+  <meta property="og:title" content="Akairis — The Crimson Anime Encyclopedia">
+  <meta property="og:description" content="Explore every anime, characters, studios, airing schedules, and track your watchlist.">
   <meta property="og:type" content="website">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23070709' stroke='%23e11d48' stroke-width='4'/%3E%3Ccircle cx='32' cy='32' r='16' fill='%23c91c28'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%23070709'/%3E%3C/svg%3E">
@@ -74,16 +74,16 @@
         </svg>
         <div>
           <span id="site-name" class="brand-name">Akairis</span>
-          <span id="site-tagline" class="brand-tagline">Curated Official Cinema &amp; Anime</span>
+          <span id="site-tagline" class="brand-tagline">The Crimson Anime Encyclopedia</span>
         </div>
       </a>
 
       <nav class="main-nav" aria-label="Primary navigation">
-        <button class="nav-btn is-active" type="button" data-tab="all">All</button>
-        <button class="nav-btn" type="button" data-tab="movies">Movies</button>
-        <button class="nav-btn" type="button" data-tab="anime">Anime</button>
-        <button class="nav-btn" type="button" data-tab="watchlist">Watchlist</button>
-        <button class="nav-btn" type="button" data-tab="credits">Credits</button>
+        <button class="nav-btn is-active" type="button" data-tab="home">Home</button>
+        <button class="nav-btn" type="button" data-tab="browse">Encyclopedia</button>
+        <button class="nav-btn" type="button" data-tab="airing">Airing</button>
+        <button class="nav-btn" type="button" data-tab="mylist">My List</button>
+        <button class="nav-btn" type="button" data-tab="credits">Sources</button>
       </nav>
     </div>
   </header>
@@ -91,13 +91,13 @@
   <main id="top" class="container main-content">
     <!-- Friendly error state -->
     <section id="app-error" class="status-card is-error hidden" role="alert">
-      <h2>Unable to load catalog</h2>
-      <p id="app-error-msg">Something went wrong while loading the video list.</p>
+      <h2>Could not reach the anime encyclopedia</h2>
+      <p id="app-error-msg">Please check your connection and try again.</p>
       <button id="retry-load-btn" class="btn btn-primary" type="button">Try Again</button>
     </section>
 
     <!-- Loading Skeletons -->
-    <section id="loading-state" class="loading-skeletons" aria-label="Loading content">
+    <section id="loading-state" class="loading-skeletons" aria-label="Loading encyclopedia">
       <div class="skeleton-hero"></div>
       <div class="skeleton-grid">
         <div class="skeleton-card"></div>
@@ -109,285 +109,288 @@
       </div>
     </section>
 
-    <!-- Focused Theater Watch View -->
-    <section id="theater-section" class="theater-section hidden" aria-label="Video player">
-      <button id="theater-back-btn" class="btn btn-ghost detail-back-btn" type="button">← Back to Home</button>
+    <!-- Wikipedia-Style Anime Entry Page -->
+    <section id="wiki-view" class="wiki-view hidden" aria-label="Anime wiki entry">
+      <div class="wiki-top-bar">
+        <button id="wiki-back-btn" class="btn btn-ghost" type="button">← Back to Home</button>
+        <div class="wiki-top-actions">
+          <button id="wiki-share-btn" class="btn btn-ghost" type="button">🔗 Copy Wiki Link</button>
+          <span id="wiki-share-status" class="wiki-share-status hidden">Copied!</span>
+        </div>
+      </div>
 
-      <div class="theater-top">
-        <div>
-          <div class="theater-badges">
-            <span id="theater-type-badge" class="badge badge-crimson">Movie</span>
-            <span id="theater-watched-badge" class="badge hidden">✓ Watched</span>
+      <!-- Banner + Poster + Quick Facts -->
+      <article class="wiki-header-card">
+        <div id="wiki-banner-wrap" class="wiki-banner-wrap">
+          <img id="wiki-banner-img" class="wiki-banner-img" alt="Anime banner">
+          <div class="wiki-banner-fade"></div>
+        </div>
+
+        <div class="wiki-main-grid">
+          <div class="wiki-poster-col">
+            <img id="wiki-cover" class="wiki-cover" alt="Anime cover poster">
+            <div class="wiki-infobox" id="wiki-infobox"></div>
           </div>
-          <h1 id="theater-title" class="theater-title">Title</h1>
-          <p id="theater-subtitle" class="theater-subtitle"></p>
-        </div>
-        <div class="theater-top-actions">
-          <button id="theater-detail-btn" class="btn btn-ghost" type="button">Details</button>
-          <button id="theater-bookmark-btn" class="btn btn-ghost" type="button">☆ Save</button>
-        </div>
-      </div>
 
-      <!-- Fullscreen shell wraps video + custom crimson control bar -->
-      <div id="theater-player-shell" class="theater-player-shell">
-        <div id="player-stage" class="player-stage"></div>
+          <div class="wiki-body-col">
+            <div class="theater-badges">
+              <span id="wiki-format-badge" class="badge badge-crimson">TV</span>
+              <span id="wiki-status-badge" class="badge">Finished</span>
+              <span id="wiki-score-badge" class="badge">★ 85%</span>
+            </div>
 
-        <!-- Option A: Custom Akairis Crimson Controls (sits BELOW video, never covering it) -->
-        <div id="custom-controls" class="custom-controls hidden" aria-label="Custom video controls">
-          <button id="cc-play-btn" class="cc-btn cc-play-btn" type="button" aria-label="Play or pause">▶</button>
-          <input id="cc-seek" class="cc-seek" type="range" min="0" max="1000" value="0" aria-label="Seek timeline">
-          <span id="cc-time" class="cc-time">0:00 / 0:00</span>
+            <h1 id="wiki-title" class="wiki-title">Anime Title</h1>
+            <p id="wiki-native-title" class="wiki-native-title"></p>
+            <p id="wiki-airing-countdown" class="wiki-airing-countdown hidden"></p>
 
-          <div class="cc-right">
-            <button id="cc-mute-btn" class="cc-btn" type="button" aria-label="Mute or unmute">🔊</button>
-            <input id="cc-volume" class="cc-volume" type="range" min="0" max="100" value="100" aria-label="Volume">
-            <select id="cc-speed" class="cc-speed" aria-label="Playback speed">
-              <option value="0.5">0.5x</option>
-              <option value="0.75">0.75x</option>
-              <option value="1" selected>1x</option>
-              <option value="1.25">1.25x</option>
-              <option value="1.5">1.5x</option>
-              <option value="2">2x</option>
-            </select>
-            <button id="cc-fullscreen-btn" class="cc-btn" type="button" aria-label="Fullscreen">⛶</button>
+            <div id="wiki-genres" class="card-chips"></div>
+
+            <!-- Personal Tracker Box (stored locally in browser) -->
+            <div class="tracker-box">
+              <div class="tracker-header">
+                <h2>My Anime Tracker</h2>
+                <span id="tracker-save-status" class="tracker-save-status">Saved on this device</span>
+              </div>
+              <div class="tracker-controls">
+                <select id="tracker-status" class="select-input" aria-label="Watch status">
+                  <option value="none">+ Add to My List</option>
+                  <option value="watching">Watching</option>
+                  <option value="completed">Completed</option>
+                  <option value="plan">Plan to Watch</option>
+                  <option value="hold">On Hold</option>
+                  <option value="dropped">Dropped</option>
+                </select>
+
+                <div class="tracker-ep-group">
+                  <button id="tracker-ep-minus" class="cc-btn" type="button" aria-label="Decrease watched episodes">−</button>
+                  <span id="tracker-ep-count" class="tracker-ep-count">0 / ? Ep</span>
+                  <button id="tracker-ep-plus" class="cc-btn" type="button" aria-label="Increase watched episodes">+</button>
+                </div>
+
+                <select id="tracker-score" class="select-input" aria-label="Your personal score">
+                  <option value="0">Your Score: —</option>
+                  <option value="10">10 ★ Masterpiece</option>
+                  <option value="9">9 ★ Great</option>
+                  <option value="8">8 ★ Very Good</option>
+                  <option value="7">7 ★ Good</option>
+                  <option value="6">6 ★ Fine</option>
+                  <option value="5">5 ★ Average</option>
+                  <option value="4">4 ★ Weak</option>
+                  <option value="3">3 ★ Poor</option>
+                  <option value="2">2 ★ Bad</option>
+                  <option value="1">1 ★ Awful</option>
+                </select>
+              </div>
+              <textarea id="tracker-notes" class="tracker-notes" rows="2" placeholder="Personal notes or favorite moments (saved only on your device)..."></textarea>
+            </div>
+
+            <div class="wiki-section-block">
+              <h2>Synopsis</h2>
+              <p id="wiki-synopsis" class="wiki-synopsis"></p>
+            </div>
+
+            <div class="wiki-section-block">
+              <h2>Themes &amp; Tags</h2>
+              <div id="wiki-tags" class="card-chips"></div>
+            </div>
           </div>
         </div>
-      </div>
+      </article>
 
-      <!-- 5-second Autoplay Next Episode Countdown Banner -->
-      <div id="autoplay-banner" class="autoplay-banner hidden" role="status">
-        <span id="autoplay-banner-text">Playing next episode in 5s...</span>
-        <div class="autoplay-banner-actions">
-          <button id="autoplay-now-btn" class="btn btn-primary" type="button">Play Now</button>
-          <button id="autoplay-cancel-btn" class="btn btn-ghost" type="button">Cancel</button>
-        </div>
-      </div>
-
-      <!-- Episode & Track Controls -->
-      <div class="theater-controls">
-        <div id="episode-nav-controls" class="episode-nav-controls hidden">
-          <button id="prev-ep-btn" class="btn btn-secondary" type="button">← Previous Ep</button>
-          <button id="next-ep-btn" class="btn btn-secondary" type="button">Next Ep →</button>
-          <button id="mark-watched-btn" class="btn btn-ghost" type="button">✓ Mark Watched</button>
-          <label class="autoplay-toggle">
-            <input id="autoplay-toggle" type="checkbox" checked>
-            <span>Autoplay Next</span>
-          </label>
-        </div>
-
-        <!-- Audio track toggle (shown ONLY when both Sub / EN and Hindi Dub exist) -->
-        <div id="track-toggle-group" class="track-toggle-group hidden" role="group" aria-label="Audio track selector">
-          <button id="track-sub-btn" class="track-btn" type="button" data-track="sub">Sub / EN</button>
-          <button id="track-hi-btn" class="track-btn" type="button" data-track="hi">Hindi Dub</button>
-        </div>
-      </div>
-
-      <p id="track-notice" class="track-notice hidden" role="status"></p>
-      <p id="theater-synopsis" class="theater-synopsis"></p>
-
-      <!-- Season & Episode Selector -->
-      <div id="episode-panel" class="episode-panel hidden">
-        <div class="episode-panel-header">
-          <h2>Episodes</h2>
-          <label class="season-select-wrap">
-            <span class="sr-only">Select season</span>
-            <select id="season-select" class="select-input"></select>
-          </label>
-        </div>
-        <div id="episode-list" class="episode-list"></div>
-      </div>
-
-      <!-- Related Titles below the player/episodes -->
-      <section id="theater-related-section" class="catalog-section hidden" style="margin-top: 24px;">
+      <!-- Characters & Voice Actors -->
+      <section id="wiki-characters-section" class="catalog-section hidden">
         <div class="section-header">
-          <h2>More Like This</h2>
+          <h2>Characters &amp; Voice Cast</h2>
         </div>
-        <div id="theater-related-grid" class="card-grid"></div>
+        <div id="wiki-characters-grid" class="char-grid"></div>
+      </section>
+
+      <!-- Relations (Prequels, Sequels, Spin-offs) -->
+      <section id="wiki-relations-section" class="catalog-section hidden">
+        <div class="section-header">
+          <h2>Related Anime (Sequels &amp; Prequels)</h2>
+        </div>
+        <div id="wiki-relations-grid" class="card-grid"></div>
+      </section>
+
+      <!-- Recommendations -->
+      <section id="wiki-recs-section" class="catalog-section hidden">
+        <div class="section-header">
+          <h2>Similar Anime</h2>
+        </div>
+        <div id="wiki-recs-grid" class="card-grid"></div>
       </section>
     </section>
 
-    <!-- Title Detail Page (shareable #hash links + More Like This) -->
-    <section id="detail-view" class="detail-view hidden" aria-label="Title details">
-      <button id="detail-back-btn" class="btn btn-ghost detail-back-btn" type="button">← Back to Home</button>
-
-      <div class="detail-card">
-        <div class="detail-media">
-          <img id="detail-thumb" alt="Title thumbnail">
-        </div>
-        <div class="detail-info">
-          <div class="theater-badges">
-            <span id="detail-type-badge" class="badge badge-crimson">Movie</span>
-            <span id="detail-year-badge" class="badge">2024</span>
-            <span id="detail-lang-badge" class="badge">Hindi</span>
-          </div>
-          <h1 id="detail-title" class="detail-title">Title</h1>
-          <p id="detail-synopsis" class="detail-synopsis"></p>
-          <div id="detail-genres" class="card-chips"></div>
-
-          <div class="detail-actions">
-            <button id="detail-watch-btn" class="btn btn-primary" type="button">▶ Watch Now</button>
-            <button id="detail-bookmark-btn" class="btn btn-secondary" type="button">☆ Save</button>
-            <button id="detail-share-btn" class="btn btn-ghost" type="button">🔗 Copy Share Link</button>
-          </div>
-          <p id="detail-share-status" class="detail-share-status hidden"></p>
-        </div>
-      </div>
-
-      <div id="detail-episodes-wrap" class="detail-episodes-wrap hidden">
-        <div class="episode-panel-header">
-          <h2>Seasons &amp; Episodes</h2>
-          <div id="detail-track-toggle" class="track-toggle-group hidden">
-            <button id="detail-track-sub" class="track-btn" type="button">Sub / EN</button>
-            <button id="detail-track-hi" class="track-btn" type="button">Hindi Dub</button>
-          </div>
-          <select id="detail-season-select" class="select-input season-select-inline"></select>
-        </div>
-        <div id="detail-episode-list" class="episode-list"></div>
-      </div>
-
-      <section id="detail-related-section" class="catalog-section hidden">
-        <div class="section-header">
-          <h2>More Like This</h2>
-        </div>
-        <div id="detail-related-grid" class="card-grid"></div>
-      </section>
-    </section>
-
-    <!-- Main Browse View -->
-    <div id="browse-view">
+    <!-- Home & Encyclopedia Search View -->
+    <div id="home-view" class="hidden">
       <!-- Featured Hero Banner -->
-      <section id="hero-banner" class="hero-banner hidden" aria-label="Featured spotlight">
-        <img id="hero-bg-img" class="hero-bg-img" alt="Featured title backdrop">
+      <section id="hero-banner" class="hero-banner hidden" aria-label="Featured anime">
+        <img id="hero-bg-img" class="hero-bg-img" alt="Featured anime backdrop">
         <div class="hero-gradient"></div>
         <div class="hero-content">
-          <span class="badge badge-crimson">Featured Spotlight</span>
-          <h1 id="hero-title" class="hero-title">Featured Title</h1>
+          <span class="badge badge-crimson">Trending Spotlight</span>
+          <h1 id="hero-title" class="hero-title">Featured Anime</h1>
           <p id="hero-meta" class="hero-meta"></p>
           <p id="hero-synopsis" class="hero-synopsis"></p>
           <div class="hero-actions">
-            <button id="hero-watch-btn" class="btn btn-primary" type="button">▶ Watch Now</button>
-            <button id="hero-detail-btn" class="btn btn-secondary" type="button">More Info</button>
+            <button id="hero-read-btn" class="btn btn-primary" type="button">Read Wiki Entry</button>
           </div>
         </div>
       </section>
 
-      <!-- Continue Watching strip -->
-      <section id="continue-section" class="catalog-section hidden">
-        <div class="section-header">
-          <h2>Continue Watching</h2>
-          <button id="clear-history-btn" class="text-link-btn" type="button">Clear History</button>
-        </div>
-        <div id="continue-grid" class="continue-grid"></div>
-      </section>
-
-      <!-- Search, Filters, Sort & Random Pick -->
-      <section class="filters-bar" aria-label="Search, filters and sorting">
-        <div class="search-row">
+      <!-- Search & Encyclopedia Filters -->
+      <section class="filters-bar" aria-label="Search and encyclopedia filters">
+        <form id="search-form" class="search-row">
           <div class="search-wrap">
-            <label for="search-input" class="sr-only">Search movies and anime</label>
-            <input id="search-input" class="search-input" type="search" placeholder="Search titles, genres, or tags...">
+            <label for="search-input" class="sr-only">Search any anime in the encyclopedia</label>
+            <input id="search-input" class="search-input" type="search" placeholder="Search any anime (e.g. Death Note, Spirited Away, Jujutsu Kaisen)...">
           </div>
-          <button id="random-pick-btn" class="btn btn-secondary random-btn" type="button">🎲 Random Pick</button>
-        </div>
+          <button id="search-btn" class="btn btn-primary" type="submit">Search</button>
+          <button id="random-anime-btn" class="btn btn-secondary random-btn" type="button">🎲 Random Anime</button>
+        </form>
 
         <div class="filter-controls">
           <select id="genre-filter" class="select-input" aria-label="Filter by genre">
             <option value="all">All Genres</option>
           </select>
 
-          <select id="language-filter" class="select-input" aria-label="Filter by language">
-            <option value="all">All Languages</option>
+          <select id="format-filter" class="select-input" aria-label="Filter by format">
+            <option value="all">All Formats</option>
+            <option value="TV">TV Series</option>
+            <option value="MOVIE">Anime Movie</option>
+            <option value="OVA">OVA</option>
+            <option value="ONA">ONA</option>
+            <option value="SPECIAL">Special</option>
           </select>
 
-          <select id="tag-filter" class="select-input" aria-label="Filter by tag">
-            <option value="all">All Categories / Tags</option>
+          <select id="status-filter" class="select-input" aria-label="Filter by status">
+            <option value="all">All Statuses</option>
+            <option value="RELEASING">Currently Airing</option>
+            <option value="FINISHED">Finished Airing</option>
+            <option value="NOT_YET_RELEASED">Upcoming</option>
           </select>
 
-          <select id="sort-filter" class="select-input" aria-label="Sort titles">
-            <option value="newest">Sort: Newest Added</option>
-            <option value="az">Sort: A to Z</option>
-            <option value="year">Sort: Release Year</option>
+          <select id="year-filter" class="select-input" aria-label="Filter by year">
+            <option value="all">All Years</option>
+          </select>
+
+          <select id="sort-filter" class="select-input" aria-label="Sort results">
+            <option value="POPULARITY_DESC">Sort: Most Popular</option>
+            <option value="SCORE_DESC">Sort: Highest Rated</option>
+            <option value="TRENDING_DESC">Sort: Trending</option>
+            <option value="START_DATE_DESC">Sort: Newest</option>
+            <option value="TITLE_ROMAJI">Sort: A to Z</option>
           </select>
 
           <label class="mature-toggle">
             <input id="mature-toggle" type="checkbox">
-            <span>Show 18+ Mature</span>
+            <span>Include 18+</span>
           </label>
         </div>
       </section>
 
-      <!-- Empty state -->
+      <!-- Search / Encyclopedia Results -->
+      <section id="results-section" class="catalog-section hidden">
+        <div class="section-header">
+          <h2 id="results-title">Encyclopedia Results</h2>
+          <span id="results-count" class="count-pill">0</span>
+        </div>
+        <div id="results-grid" class="card-grid"></div>
+        <div class="load-more-wrap">
+          <button id="load-more-btn" class="btn btn-secondary hidden" type="button">Load More Anime</button>
+        </div>
+      </section>
+
+      <!-- Empty State -->
       <div id="empty-state" class="status-card hidden">
-        <h2 id="empty-title">No matches found</h2>
-        <p id="empty-desc">Try clearing your search or changing your filters.</p>
+        <h2 id="empty-title">No anime found</h2>
+        <p id="empty-desc">Try a different title or reset your encyclopedia filters.</p>
         <button id="reset-filters-btn" class="btn btn-primary" type="button">Reset Filters</button>
       </div>
 
-      <!-- Trending Row -->
-      <section id="trending-section" class="catalog-section hidden">
-        <div class="section-header">
-          <h2>Trending Now</h2>
-        </div>
-        <div id="trending-grid" class="card-grid"></div>
-      </section>
+      <!-- Home Curated Sections -->
+      <div id="home-rows">
+        <section id="trending-section" class="catalog-section">
+          <div class="section-header">
+            <h2>Trending Now</h2>
+          </div>
+          <div id="trending-grid" class="card-grid"></div>
+        </section>
 
-      <!-- Recently Added Row -->
-      <section id="recent-section" class="catalog-section hidden">
-        <div class="section-header">
-          <h2>Recently Added</h2>
-        </div>
-        <div id="recent-grid" class="card-grid"></div>
-      </section>
+        <section id="season-section" class="catalog-section">
+          <div class="section-header">
+            <h2>Currently Airing Favorites</h2>
+          </div>
+          <div id="season-grid" class="card-grid"></div>
+        </section>
 
-      <!-- Movies Section -->
-      <section id="movies-section" class="catalog-section hidden">
-        <div class="section-header">
-          <h2>Movies</h2>
-          <span id="movies-count" class="count-pill">0</span>
-        </div>
-        <div id="movies-grid" class="card-grid"></div>
-      </section>
+        <section id="top-section" class="catalog-section">
+          <div class="section-header">
+            <h2>All-Time Top Rated</h2>
+          </div>
+          <div id="top-grid" class="card-grid"></div>
+        </section>
 
-      <!-- Anime Series Section -->
-      <section id="shows-section" class="catalog-section hidden">
-        <div class="section-header">
-          <h2>Anime Series</h2>
-          <span id="shows-count" class="count-pill">0</span>
-        </div>
-        <div id="shows-grid" class="card-grid"></div>
-      </section>
-
-      <!-- Bookmarks Section (Watchlist tab) -->
-      <section id="bookmarks-section" class="catalog-section hidden">
-        <div class="section-header">
-          <h2>Saved Bookmarks</h2>
-          <span id="bookmarks-count" class="count-pill">0</span>
-        </div>
-        <div id="bookmarks-grid" class="card-grid"></div>
-      </section>
+        <section id="movies-section" class="catalog-section">
+          <div class="section-header">
+            <h2>Top Anime Movies</h2>
+          </div>
+          <div id="movies-grid" class="card-grid"></div>
+        </section>
+      </div>
     </div>
 
-    <!-- Credits & Legal Disclaimer Page -->
-    <section id="credits-view" class="about-view hidden" aria-label="Credits and legal disclaimer">
+    <!-- Airing Schedule View -->
+    <section id="airing-view" class="hidden" aria-label="Upcoming airing episodes">
+      <div class="section-header">
+        <h2>Upcoming Airing Schedule</h2>
+      </div>
+      <div id="airing-grid" class="airing-grid"></div>
+    </section>
+
+    <!-- My Personal Anime List View -->
+    <section id="mylist-view" class="hidden" aria-label="My personal anime list">
+      <div class="section-header">
+        <h2>My Anime List</h2>
+        <button id="mylist-clear-btn" class="text-link-btn" type="button">Clear All</button>
+      </div>
+
+      <div class="mylist-tabs" role="group" aria-label="Filter my list by status">
+        <button class="nav-btn is-active" type="button" data-list-filter="all">All</button>
+        <button class="nav-btn" type="button" data-list-filter="watching">Watching</button>
+        <button class="nav-btn" type="button" data-list-filter="completed">Completed</button>
+        <button class="nav-btn" type="button" data-list-filter="plan">Plan to Watch</button>
+        <button class="nav-btn" type="button" data-list-filter="hold">On Hold</button>
+        <button class="nav-btn" type="button" data-list-filter="dropped">Dropped</button>
+      </div>
+
+      <div id="mylist-empty" class="status-card hidden">
+        <h2>Your anime list is empty</h2>
+        <p>Open any anime page and pick a status in "My Anime Tracker" to track your progress here.</p>
+      </div>
+
+      <div id="mylist-grid" class="card-grid"></div>
+    </section>
+
+    <!-- Sources & Credits View -->
+    <section id="credits-view" class="about-view hidden" aria-label="Sources and disclaimer">
       <div class="about-card">
-        <h1>Credits &amp; Official Sources</h1>
+        <h1>About Akairis &amp; Sources</h1>
         <p id="about-statement" class="about-lead"></p>
 
         <div class="about-grid">
           <div class="about-box">
-            <h2>Official Channels &amp; Platform Credit</h2>
-            <p class="about-muted">All streams are embedded via <a class="crimson-link" href="https://www.youtube.com" target="_blank" rel="noopener noreferrer">YouTube</a> from these verified official and open-license channels:</p>
-            <ul id="allowlist-list" class="allowlist-list"></ul>
+            <h2>Encyclopedia Data Source</h2>
+            <p class="about-muted">Akairis keeps all reading and tracking directly on this site, using public metadata from:</p>
+            <ul id="sources-list" class="allowlist-list"></ul>
           </div>
 
           <div class="about-box">
-            <h2>Rights Holders &amp; Takedown Contact</h2>
-            <p class="about-muted">All titles, trademarks, and videos belong to their respective owners and studios. If you represent a rights holder and want a title removed from this directory, please contact:</p>
+            <h2>Rights Holders &amp; Privacy</h2>
+            <p class="about-muted">Questions or takedown requests? Contact:</p>
             <p><a id="takedown-email-link" class="crimson-link" href="mailto:takedown@example.com">takedown@example.com</a></p>
-
-            <h3>Privacy &amp; Playback Data</h3>
-            <p class="about-muted">Akairis uses privacy-enhanced (<code>youtube-nocookie.com</code>) embeds and loads videos only when you click play. Bookmarks, watched episodes, and resume timestamps stay on your own device via browser <code>localStorage</code>.</p>
-
+            <p class="about-muted">Your personal anime list, ratings, and notes are saved only in your own browser using <code>localStorage</code>—never uploaded anywhere.</p>
             <button id="replay-intro-btn" class="btn btn-secondary" type="button">Replay Opening Intro</button>
           </div>
         </div>
@@ -397,8 +400,8 @@
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <p><strong id="footer-site-name">Akairis</strong> — Official Embedded Showcase. No video files are hosted on this site.</p>
-      <button id="footer-credits-btn" class="text-link-btn" type="button">Credits &amp; Disclaimer</button>
+      <p><strong id="footer-site-name">Akairis</strong> — The Crimson Anime Encyclopedia.</p>
+      <button id="footer-credits-btn" class="text-link-btn" type="button">Sources &amp; Disclaimer</button>
     </div>
   </footer>
 
